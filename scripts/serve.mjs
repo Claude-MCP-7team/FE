@@ -3,15 +3,16 @@ import { readFile } from 'node:fs/promises';
 import { resolve, extname, sep } from 'node:path';
 import { fileURLToPath } from 'node:url';
 export function createServer({ prototype = false } = {}) {
-const root = fileURLToPath(new URL(prototype ? '../prototype/' : '../', import.meta.url));
-const allowed = new Set(prototype ? ['/index.html'] : ['/index.html', '/src/app.js', '/src/contracts.js', '/src/styles.css', '/mocks/scenario.json']);
+const root = fileURLToPath(new URL('../', import.meta.url));
+const shared = ['/profile.html', '/src/profile.js', '/src/profile-form.js', '/src/profile-page.js', '/src/profile.css'];
+const allowed = new Set([...shared, ...(prototype ? ['/index.html'] : ['/index.html', '/src/app.js', '/src/contracts.js', '/src/styles.css', '/mocks/scenario.json'])]);
 const types = { '.html': 'text/html', '.js': 'text/javascript', '.css': 'text/css', '.json': 'application/json' };
 return http.createServer(async (req, res) => {
   try {
     const pathname = decodeURIComponent(new URL(req.url, 'http://localhost').pathname);
     const path = pathname === '/' ? '/index.html' : pathname;
     if (!allowed.has(path)) { res.writeHead(404).end('Not found'); return; }
-    const file = resolve(root, '.' + path);
+    const file = resolve(root, '.' + (prototype && path === '/index.html' ? '/prototype/index.html' : path));
     if (!file.startsWith(resolve(root) + sep)) { res.writeHead(404).end(); return; }
     const body = await readFile(file);
     res.writeHead(200, { 'Content-Type': types[extname(file)] + '; charset=utf-8', 'Cache-Control': 'no-store' }).end(body);
