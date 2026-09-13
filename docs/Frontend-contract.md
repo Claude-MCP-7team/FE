@@ -1,6 +1,8 @@
-# Frontend M0 계약 초안
+# Frontend MVP 인터페이스 계약 초안
 
 갱신일: 2026-09-13 · Final MVP PRD / Milestone v3 반영 · **BE/AI 합의 전**
+
+범위: M0에서 합의할 MVP 전체 인터페이스(입력·판정·근거·질문·조합·서류·일정)를 다룬다. M0 구현 현황은 아래 기존 Mock 설명과 구분하며, 문서에 포함됐다는 이유로 해당 기능 구현이나 계약 합의가 완료된 것은 아니다.
 
 ## 새 PRD와 기존 구현의 차이
 
@@ -12,6 +14,7 @@ AI는 공고문 구조화·질문·설명을, BE는 최종 판정·미래 날짜
 | --- | --- | --- |
 | 정책 판정 | `JudgementResult.verdict`: ELIGIBLE / INELIGIBLE / NEEDS_INFO | `EligibilityResult.status`: PASS / FAIL / UNKNOWN / FUTURE_PASS |
 | 조건 판정 | PASS / FAIL / UNKNOWN / FUTURE_PASS | 조건별 status 사용 |
+| 조건 결과 컨테이너 | matched[] / unmatched[] / unknown[]; FUTURE_PASS 배치 미정 | conditions[] 평면 배열의 status |
 | 신뢰도 | CONFIRMED / ESTIMATED / NEEDS_REVIEW, verdict와 분리 | 미구현 |
 | 근거 | source_quote / source_url / confidence | evidence.quote / page / url |
 | 개인 소득 | personal_income | income |
@@ -23,7 +26,33 @@ AI는 공고문 구조화·질문·설명을, BE는 최종 판정·미래 날짜
 - NEEDS_INFO(사용자 정보 부족)와 NEEDS_REVIEW(근거·공고문 추가 검토)를 구분한다. ESTIMATED를 확정 판정·확정 충돌로 표시하지 않는다.
 - 날짜는 BE가 계산한다. FE의 생년월일·거주 시작일 입력 검증은 자격 판정과 별개다.
 - PRD 예제의 `op`와 Condition 필드 목록의 `operator`, Milestone의 `sourceQuote`와 PRD의 `source_quote` 표기를 하나로 확정해야 한다.
-- `Condition.confidence`의 타입과 결과 신뢰도 enum의 관계, 미래 조건 결과의 응답 위치를 확정해야 한다.
+- `Condition.confidence`의 타입과 결과 신뢰도 enum의 관계를 확정해야 한다.
+
+#### 조건 상태 4개와 응답 배열 3개의 대응
+
+[PRD](PRD.md) 13장은 조건 상태를 PASS / FAIL / UNKNOWN / FUTURE_PASS로 정의하지만, 20장의 JudgementResult에는 matched[] / unmatched[] / unknown[]만 있다. 정책 verdict와 Dashboard 분류 문제와는 별개의 조건 상세 계약 누락이다.
+
+BE·AI와 다음을 합의한다.
+
+- FUTURE_PASS 조건을 기존 세 배열 중 어디에 넣는지, 별도 배열을 추가하는지, 또는 status를 가진 단일 배열로 반환하는지 확정한다. 어느 방식도 현재 합의된 것으로 간주하지 않는다.
+- 각 배열 원소가 조건 객체인지 rule_id 참조인지, 조건별 status·원문 근거·예상 충족일을 어디에서 읽는지 확정한다. 정책 전체의 future_eligibility_date와 개별 조건 날짜도 구분한다.
+- 여러 배열에 같은 rule_id가 나타날 수 있는지, 조건의 누락·중복·표시 순서를 어떻게 처리할지 합의한다.
+
+현재 `src/app.js`의 `detail()`은 `result.conditions[]`와 각 원소의 status를 읽는다. 합의 후 별도 정책 상세 기능 PR에서 응답 변환과 검증기를 수정한다. FE가 배열 이름이나 정책 미래 날짜만으로 조건 상태를 추측하지 않는다.
+
+확인 기준: 네 가지 조건 상태를 모두 담은 BE 응답 예시에서 FUTURE_PASS 조건의 위치·상태·근거·개별 날짜를 모호함 없이 확인하고, FE 상세 화면에 빠짐없이 표시할 수 있어야 한다.
+
+#### Condition.askable 의미와 질문 노출 책임
+
+[PRD](PRD.md) 20장은 askable을 필드로 열거하지만 의미·타입·사용 규칙을 정의하지 않는다. 이름만으로 “역질문 대상 여부”라고 확정하지 않고 BE·AI에 다음을 확인한다.
+
+- 의미, 자료형, 필수 여부 및 누락/null의 처리 규칙은 무엇인가?
+- 값은 AI 구조화 단계와 BE 판정 단계 중 어디에서 생성·검증하며, 사용자에게 부족한 정보와 공고문 자체의 모호함을 어떻게 구분하는가?
+- UNKNOWN과 askable의 조합이 질문 생성·보류·추가 검토로 어떻게 연결되는가? boolean으로 합의하는 경우 true/false 각각의 동작도 명시한다.
+- FE가 최종 질문 API 목록만 표시하는지, askable을 직접 읽는 역할도 있는지 확정한다. 현재 FE는 questions[]를 표시하며 askable로 질문을 생성하거나 필터링하지 않는다.
+- 질문과 rule_id/policy_id의 연결, 여러 조건의 질문 병합, 모르겠음/건너뛰기 후 재질문 규칙을 확정한다.
+
+확인 기준: 합의된 타입의 askable 값과 누락 사례, UNKNOWN 및 NEEDS_REVIEW 사례별 질문 API 응답·노출 여부가 설명된 예시를 받는다. FE가 askable만 보고 질문 내용이나 최종 자격을 임의로 만들지 않는다.
 
 ### M1 Profile 입력 초안
 
@@ -31,7 +60,9 @@ PRD 필드: birth_date, region, residence_start_date, education, employment_stat
 
 폼 우선 구현에서는 생년월일·거주지역·거주 시작일을 필수 입력으로 제안하고, 소득·가구원 수 등 모르는 값은 null로 둔다. 이름·주민등록번호·상세주소는 수집하지 않는다. enum·필수 여부·소득의 월/연 기준은 BE 확인 전이며, 선택지/검증은 FE 편집용 초안이지 서버 계약이 아니다. received_policy_ids와 answers는 정책/질문 API가 준비된 뒤 선택 UI로 연결한다.
 
-### 개발 브랜치 운영
+### FE 개발 브랜치 운영
+
+아래는 이 FE 저장소에 적용하는 운영 규칙이다. Milestone에 명시된 팀 전체 컨벤션이나 BE·AI 저장소의 브랜치 규칙을 새로 확정하는 내용은 아니다.
 
 `docs/mvp-contract-alignment`, `feat/profile-form`, `feat/profile-api`, `feat/analysis-flow`, `feat/judgement-dashboard`, `feat/policy-detail`처럼 작업별로 최신 dev에서 분기하고 PR 대상은 dev로 지정한다. 독립 작업은 별도 PR로, 선행 코드에 의존하는 작업은 선행 PR 머지 후 시작한다.
 
@@ -106,5 +137,7 @@ M0에서는 화면 이동만 연결하며 저장·AI 분석·답변 제출·서�
 3. 질문 네 종류별 입력 제약·답변 DTO와 `모름`의 표현.
 4. 원문 URL/페이지/인용문 및 미래 날짜·판정 기준일 반환 규칙.
 5. 동일 JSON으로 BE response 생성 및 AI parsing 결과 검증.
+6. 조건 4개 상태와 matched/unmatched/unknown 배열의 대응, FUTURE_PASS 조건 위치·근거·개별 날짜 및 상세 화면 변환 규칙.
+7. askable의 의미·타입·생성 주체·누락 처리와 UNKNOWN/NEEDS_REVIEW별 질문 생성·노출 책임.
 
 이 항목의 확인 없이 M0 전체 완료나 실제 API 연동 완료로 간주하지 않는다.
