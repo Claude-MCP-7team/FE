@@ -34,7 +34,7 @@ M0에서는 화면 이동만 연결하며 저장·AI 분석·답변 제출·서�
 ## 데이터
 
 공유 예시: [`../mocks/scenario.json`](../mocks/scenario.json).
-`src/contracts.js`는 판정 상태, 정책 참조, 근거, 향후 날짜 존재를 검증한다. 전체 API 응답용 스키마 검증기는 M0 합의 후 확장한다.
+`src/contracts.js`는 화면별 배열/객체 형태, 판정·조합 상태, 결과·질문·서류·일정·조합·충돌의 정책 참조, 조건 근거를 검증한다. FUTURE_PASS 날짜는 YYYY-MM-DD 형식과 실제 달력 날짜(윤년 포함)를 확인한다. 전체 API 응답용 필드 스키마 검증기는 M0 합의 후 확장한다.
 
 - `UserProfile`: PRD snake_case 필드 사용. 소득은 원 단위 숫자, 알 수 없는 가구 소득은 `null` (0원과 구별). 날짜는 `YYYY-MM-DD`.
 - `Policy`: `policy_id`, `name`, `organization`, `benefit`, `description`. 실제 원문·접수기간 등 필드는 BE와 추가 합의한다.
