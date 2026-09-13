@@ -1,6 +1,39 @@
 # Frontend M0 계약 초안
 
-작성일: 2026-09-12 · 버전: `0.1-draft` · **BE/AI 합의 전**
+갱신일: 2026-09-13 · Final MVP PRD / Milestone v3 반영 · **BE/AI 합의 전**
+
+## 새 PRD와 기존 구현의 차이
+
+현재 `mocks/scenario.json`과 `src/contracts.js`는 이전 `0.1-draft` 계약의 실행 예시다. 아래 새 계약과 동일한 응답으로 간주하지 않는다. Issue #2에서 합의 후 별도 기능 브랜치에서 전환하며, 이번 문서 갱신으로 서버 DTO를 확정하지 않는다.
+
+AI는 공고문 구조화·질문·설명을, BE는 최종 판정·미래 날짜·조합·지원금 합산·일정 계산을 담당한다. FE는 BE 응답을 표시하며 판정 비즈니스 로직을 구현하지 않는다.
+
+| 구분 | 새 PRD 계약 | 이전 Mock |
+| --- | --- | --- |
+| 정책 판정 | `JudgementResult.verdict`: ELIGIBLE / INELIGIBLE / NEEDS_INFO | `EligibilityResult.status`: PASS / FAIL / UNKNOWN / FUTURE_PASS |
+| 조건 판정 | PASS / FAIL / UNKNOWN / FUTURE_PASS | 조건별 status 사용 |
+| 신뢰도 | CONFIRMED / ESTIMATED / NEEDS_REVIEW, verdict와 분리 | 미구현 |
+| 근거 | source_quote / source_url / confidence | evidence.quote / page / url |
+| 개인 소득 | personal_income | income |
+| 추가 Profile 필드 | employment_type / household_size / received_policy_ids | 일부 미포함 |
+
+### 반드시 합의할 표현 규칙
+
+- 정책 verdict는 3개지만 Dashboard는 향후 가능을 포함한 4개 분류다. 미래 날짜 존재만으로 FE가 신청 가능 여부를 재판정하지 않는다. BE가 반환할 표시 필드 또는 합의된 표현 규칙이 필요하다.
+- NEEDS_INFO(사용자 정보 부족)와 NEEDS_REVIEW(근거·공고문 추가 검토)를 구분한다. ESTIMATED를 확정 판정·확정 충돌로 표시하지 않는다.
+- 날짜는 BE가 계산한다. FE의 생년월일·거주 시작일 입력 검증은 자격 판정과 별개다.
+- PRD 예제의 `op`와 Condition 필드 목록의 `operator`, Milestone의 `sourceQuote`와 PRD의 `source_quote` 표기를 하나로 확정해야 한다.
+- `Condition.confidence`의 타입과 결과 신뢰도 enum의 관계, 미래 조건 결과의 응답 위치를 확정해야 한다.
+
+### M1 Profile 입력 초안
+
+PRD 필드: birth_date, region, residence_start_date, education, employment_status, employment_type, personal_income, household_income, household_size, marital_status, policy_history, received_policy_ids, answers.
+
+폼 우선 구현에서는 생년월일·거주지역·거주 시작일을 필수 입력으로 제안하고, 소득·가구원 수 등 모르는 값은 null로 둔다. 이름·주민등록번호·상세주소는 수집하지 않는다. enum·필수 여부·소득의 월/연 기준은 BE 확인 전이며, 선택지/검증은 FE 편집용 초안이지 서버 계약이 아니다. received_policy_ids와 answers는 정책/질문 API가 준비된 뒤 선택 UI로 연결한다.
+
+### 개발 브랜치 운영
+
+`docs/mvp-contract-alignment`, `feat/profile-form`, `feat/profile-api`, `feat/analysis-flow`, `feat/judgement-dashboard`, `feat/policy-detail`처럼 작업별로 최신 dev에서 분기하고 PR 대상은 dev로 지정한다. 독립 작업은 별도 PR로, 선행 코드에 의존하는 작업은 선행 PR 머지 후 시작한다.
 
 ## 화면과 흐름
 
@@ -20,7 +53,7 @@ M0에서는 화면 이동만 연결하며 저장·AI 분석·답변 제출·서�
 공통 UI: header/navigation, heading, badge, card, 상태 필터, Loading/Error/Empty, 없는 경로 안내.
 해시 라우팅으로 새로고침 및 뒤로/앞으로 이동을 지원한다. 외부 라이브러리 없이 ES modules로 구성했으며 기존 디자인 초안은 `prototype/index.html`에 보존한다.
 
-## 판정 상태
+## 기존 Mock 판정 상태 (새 정책 verdict로 전환 전)
 
 | API 값 | UI 문구 | 표현 | 다음 행동 |
 | --- | --- | --- | --- |
@@ -31,7 +64,7 @@ M0에서는 화면 이동만 연결하며 저장·AI 분석·답변 제출·서�
 
 색상과 함께 텍스트·기호를 제공한다. FUTURE_PASS의 날짜를 접수 가능일로 표현하지 않는다. UNKNOWN을 임의로 PASS로 바꾸거나 확인 전 조합 총액을 확정하지 않는다.
 
-## 데이터
+## 기존 Mock 데이터 (0.1-draft)
 
 공유 예시: [`../mocks/scenario.json`](../mocks/scenario.json).
 `src/contracts.js`는 화면별 배열/객체 형태, 판정·조합 상태, 결과·질문·서류·일정·조합·충돌의 정책 참조, 조건 근거를 검증한다. FUTURE_PASS 날짜는 YYYY-MM-DD 형식과 실제 달력 날짜(윤년 포함)를 확인한다. 전체 API 응답용 필드 스키마 검증기는 M0 합의 후 확장한다.
