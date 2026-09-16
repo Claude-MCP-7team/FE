@@ -4,7 +4,7 @@ import { resolve, extname, sep } from 'node:path';
 import { fileURLToPath } from 'node:url';
 export function createServer({ prototype = false } = {}) {
 const root = fileURLToPath(new URL(prototype ? '../prototype/' : '../', import.meta.url));
-const allowed = new Set(prototype ? ['/index.html'] : ['/index.html', '/src/app.js', '/src/contracts.js', '/src/styles.css', '/mocks/scenario.json']);
+const allowed = new Set(prototype ? ['/index.html'] : ['/index.html', '/src/app.js', '/src/contracts.js', '/src/styles.css', '/mocks/scenario.json', '/src/profile-api.js']);
 const types = { '.html': 'text/html', '.js': 'text/javascript', '.css': 'text/css', '.json': 'application/json' };
 return http.createServer(async (req, res) => {
   try {
