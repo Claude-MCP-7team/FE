@@ -2,6 +2,6 @@
   "name": "youthfit-frontend",
   "private": true,
   "type": "module",
-  "scripts": { "dev": "node scripts/serve.mjs", "preview": "node scripts/serve.mjs --prototype", "test": "node --test", "check": "node --check src/app.js && node --check src/contracts.js && node --check src/profile-api.js && node --check scripts/serve.mjs" },
+  "scripts": { "dev": "node scripts/serve.mjs", "preview": "node scripts/serve.mjs --prototype", "test": "node --test", "check": "node --check src/app.js && node --check src/contracts.js && node --check src/profile.js && node --check src/profile-form.js && node --check src/profile-page.js && node --check src/dom.js && node --check src/page-loader.js && node --check scripts/serve.mjs" },
   "engines": { "node": ">=22" }
 }
