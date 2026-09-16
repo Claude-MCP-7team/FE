@@ -11,6 +11,13 @@ BE `dev`의 세션 계약에 맞춘 FE API 클라이언트는 `src/profile-api.j
 - 세션 ID는 `sessionStorage`의 `ypc.session-id.v1`에 보관하고, 이후 요청에는 `X-Session-Id` 헤더를 붙입니다.
 - API는 BE의 직접 응답 형식(`{session_id}`, `{profile, ...}`)을 사용하며 별도 `data` envelope을 추가하지 않습니다.
 
+## 실패 및 재시도
+
+- 삭제 성공 또는 404(이미 없는 세션)일 때만 로컬 세션 ID를 지웁니다. 네트워크·권한·서버 오류에서는 ID를 유지해 같은 세션의 삭제를 재시도할 수 있습니다.
+- 조회 응답에는 `profile`이 명시되어야 합니다. `profile: null`은 입력 전 세션으로 처리하고, 누락·잘못된 타입·손상된 JSON은 `INVALID_RESPONSE`로 처리합니다. 잘못된 응답을 빈 프로필로 표시하지 않습니다.
+- 응답 본문 수신 중 연결이 끊겨도 `NETWORK_ERROR`로 처리하며 세션 ID를 유지합니다.
+- 위 동작은 모의 응답 회귀 테스트로 검증하며 실제 BE 연결 검증과는 별개입니다.
+
 ## 프로필 변환
 
 `toBackendProfile()`은 기존 Profile 폼의 평면 draft를 BE의 `core/history/answers/consent` 구조로 변환합니다. 지역·학력·고용상태·혼인상태처럼 UI 값과 BE enum이 다른 값은 여기서 변환합니다.
