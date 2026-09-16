@@ -13,3 +13,61 @@ test('gets profile, creates on upsert without session, and removes session after
 test('clears expired session after 404 and does not hide other errors', async () => { const store = storage(); const f = fakeFetch([{ status: 404, body: JSON.stringify({ detail: '없음' }) }]); const api = createProfileApi({ fetchImpl: f.fetch, storage: store }); store.setItem('ypc.session-id.v1', '123e4567-e89b-42d3-a456-426614174000'); await assert.rejects(api.get(), e => e.status === 404); assert.equal(api.sessionId, null); });
 test('normalizes network, invalid JSON response and HTTP errors', async () => { const networkStore = storage(); networkStore.setItem('ypc.session-id.v1', '123e4567-e89b-42d3-a456-426614174000'); const network = createProfileApi({ fetchImpl: async () => { throw new Error('offline'); }, storage: networkStore }); await assert.rejects(network.get(), e => e.code === 'NETWORK_ERROR'); const invalid = createProfileApi({ fetchImpl: async () => new Response('{broken', { status: 200 }), storage: storage() }); await assert.rejects(invalid.create(), e => e.code === 'INVALID_RESPONSE'); const http = createProfileApi({ fetchImpl: async () => new Response(JSON.stringify({ detail: 'bad' }), { status: 422 }), storage: storage() }); await assert.rejects(http.create(), e => e.status === 422 && e.detail === 'bad'); });
 test('upsert uses PUT for an existing session and create uses no body when empty', async () => { const store = storage(); store.setItem('ypc.session-id.v1', '123e4567-e89b-42d3-a456-426614174000'); const f = fakeFetch([{ status: 204 }]); const api = createProfileApi({ fetchImpl: f.fetch, storage: store }); await api.upsert({ core: {} }); assert.equal(f.calls[0].url, '/v1/sessions/123e4567-e89b-42d3-a456-426614174000'); });
+
+test('failed deletion preserves the session so the same deletion can be retried', async () => {
+  for (const failure of [new Error('offline'), { status: 403 }, { status: 500 }]) {
+    const store = storage();
+    const id = '123e4567-e89b-42d3-a456-426614174000';
+    store.setItem('ypc.session-id.v1', id);
+    const f = fakeFetch([failure, { status: 204 }]);
+    const api = createProfileApi({ fetchImpl: f.fetch, storage: store });
+    await assert.rejects(api.remove(), ApiError);
+    assert.equal(api.sessionId, id);
+    assert.equal(await api.remove(), true);
+    assert.equal(f.calls[1].options.headers.get('X-Session-Id'), id);
+    assert.equal(api.sessionId, null);
+    assert.equal(await api.remove(), false);
+    assert.equal(f.calls.length, 2);
+  }
+});
+
+test('deleting an already absent session clears its local identifier', async () => {
+  const store = storage();
+  store.setItem('ypc.session-id.v1', '123e4567-e89b-42d3-a456-426614174000');
+  const f = fakeFetch([{ status: 404 }]);
+  const api = createProfileApi({ fetchImpl: f.fetch, storage: store });
+  assert.equal(await api.remove(), true);
+  assert.equal(api.sessionId, null);
+});
+
+test('invalid profile responses fail without clearing the session', async () => {
+  for (const body of ['', '{broken', '{}', 'null', '{"profile":[]}', '{"profile":false}', '{"profile":"invalid"}']) {
+    const store = storage();
+    const id = '123e4567-e89b-42d3-a456-426614174000';
+    store.setItem('ypc.session-id.v1', id);
+    const f = fakeFetch([{ body }]);
+    const api = createProfileApi({ fetchImpl: f.fetch, storage: store });
+    await assert.rejects(api.get(), e => e instanceof ApiError && e.code === 'INVALID_RESPONSE');
+    assert.equal(api.sessionId, id);
+  }
+});
+
+test('an explicitly null profile is a valid empty session', async () => {
+  const store = storage();
+  store.setItem('ypc.session-id.v1', '123e4567-e89b-42d3-a456-426614174000');
+  const f = fakeFetch([{ body: '{"profile":null}' }]);
+  const api = createProfileApi({ fetchImpl: f.fetch, storage: store });
+  assert.equal(await api.get(), null);
+  assert.notEqual(api.sessionId, null);
+});
+
+test('interrupted response bodies become retryable network errors', async () => {
+  const store = storage();
+  const id = '123e4567-e89b-42d3-a456-426614174000';
+  store.setItem('ypc.session-id.v1', id);
+  const api = createProfileApi({ storage: store, fetchImpl: async () => ({
+    ok: true, status: 200, text: async () => { throw new Error('stream interrupted'); },
+  }) });
+  await assert.rejects(api.get(), e => e instanceof ApiError && e.code === 'NETWORK_ERROR');
+  assert.equal(api.sessionId, id);
+});

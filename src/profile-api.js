@@ -23,8 +23,15 @@ export function createProfileApi({ baseUrl = globalThis.__YPC_API_BASE__ ?? '', 
     try { response = await fetchImpl(url(path), { ...options, headers }); }
     catch (error) { throw new ApiError('서버에 연결하지 못했어요.', { detail: error }); }
     let body = null;
-    const text = await response.text();
-    if (text) { try { body = JSON.parse(text); } catch { body = null; } }
+    let text;
+    try { text = await response.text(); }
+    catch (error) { throw new ApiError('서버 응답을 읽지 못했어요. 다시 시도해 주세요.', { detail: error }); }
+    if (text) {
+      try { body = JSON.parse(text); }
+      catch {
+        if (response.ok) throw new ApiError('서버 응답 형식이 올바르지 않아요.', { code: 'INVALID_RESPONSE' });
+      }
+    }
     if (!response.ok) {
       const detail = body?.detail ?? body?.error?.message ?? null;
       throw new ApiError(detail || `요청을 처리하지 못했어요. (${response.status})`, { status: response.status, code: body?.error?.code ?? 'HTTP_ERROR', detail });
@@ -43,7 +50,13 @@ export function createProfileApi({ baseUrl = globalThis.__YPC_API_BASE__ ?? '', 
     async get() {
       const id = readSession();
       if (!id) return null;
-      try { const result = await request(`/v1/sessions/${encodeURIComponent(id)}`); return result?.profile ?? null; }
+      try {
+        const result = await request(`/v1/sessions/${encodeURIComponent(id)}`);
+        if (!result || !Object.hasOwn(result, 'profile') || (result.profile !== null && (typeof result.profile !== 'object' || Array.isArray(result.profile)))) {
+          throw new ApiError('서버가 올바른 프로필을 반환하지 않았어요.', { code: 'INVALID_RESPONSE' });
+        }
+        return result.profile;
+      }
       catch (error) { if (error instanceof ApiError && error.status === 404) clearSession(); throw error; }
     },
     async put(profile) {
@@ -56,8 +69,12 @@ export function createProfileApi({ baseUrl = globalThis.__YPC_API_BASE__ ?? '', 
     async remove() {
       const id = readSession();
       if (!id) return false;
-      try { await request(`/v1/sessions/${encodeURIComponent(id)}`, { method: 'DELETE' }); return true; }
-      finally { clearSession(); }
+      try { await request(`/v1/sessions/${encodeURIComponent(id)}`, { method: 'DELETE' }); }
+      catch (error) {
+        if (!(error instanceof ApiError) || error.status !== 404) throw error;
+      }
+      clearSession();
+      return true;
     },
   };
 }
