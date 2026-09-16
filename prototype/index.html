@@ -369,56 +369,6 @@
     </div>
   </div>
 
-  <div class="overlay" id="profileOverlay" role="dialog" aria-modal="true" aria-labelledby="profileTitle">
-    <div class="modal">
-      <div class="modal-head"><div><span class="badge pass">내 조건 관리</span><h2 id="profileTitle">정책 판정 조건 수정</h2></div><button class="close" data-close aria-label="닫기">×</button></div>
-      <p class="form-hint">공통 정보만 먼저 입력합니다. 정책마다 필요한 추가 조건은 AI가 다시 질문해요.</p>
-      <form class="profile-form" id="profileForm">
-        <section class="form-section">
-          <h3>기본 정보</h3>
-          <div class="form-grid">
-            <div class="field"><label for="userName">이름</label><input id="userName" name="userName" value="김유진" required></div>
-            <div class="field"><label for="birthDate">생년월일</label><input id="birthDate" name="birthDate" type="date" value="2002-05-12" required></div>
-            <div class="field"><label for="region">현재 거주지역<span class="required">*</span></label><select id="region" name="region" required><option>경기도 용인시</option><option>경기도 수원시</option><option>경기도 성남시</option><option>서울특별시</option><option>기타 지역</option></select></div>
-            <div class="field"><label for="residenceStart">연속 거주 시작일<span class="required">*</span></label><input id="residenceStart" name="residenceStart" type="month" value="2026-05" required><span class="duration-preview" id="residenceDuration">현재 기준 약 4개월 거주</span></div>
-          </div>
-        </section>
-        <section class="form-section">
-          <h3>학업 및 취업</h3>
-          <div class="form-grid">
-            <div class="field"><label for="education">학력 상태</label><select id="education" name="education"><option>대학교 재학</option><option>대학교 휴학</option><option>대학교 졸업</option><option>고등학교 졸업</option><option>대학원 재학</option></select></div>
-            <div class="field"><label for="employment">취업 상태</label><select id="employment" name="employment"><option>미취업</option><option>재직 중</option><option>자영업</option><option>단기 근로</option></select></div>
-            <div class="field"><label for="workType">근로 형태</label><select id="workType" name="workType"><option>해당 없음</option><option>정규직</option><option>계약직</option><option>아르바이트</option><option>프리랜서</option></select></div>
-            <div class="field"><label for="monthlyIncome">개인 월 소득</label><input id="monthlyIncome" name="monthlyIncome" type="number" min="0" step="10000" value="0"><span class="form-hint">원 단위로 입력</span></div>
-          </div>
-        </section>
-        <section class="form-section">
-          <h3>가구 및 수혜 정보</h3>
-          <div class="form-grid">
-            <div class="field"><label for="householdIncome">가구 월 소득</label><input id="householdIncome" name="householdIncome" type="number" min="0" step="10000" placeholder="모르면 비워두세요"></div>
-            <div class="field"><label for="householdSize">가구원 수<span class="required">*</span></label><input id="householdSize" name="householdSize" type="number" min="1" max="20" value="3" required></div>
-            <div class="field"><label for="householder">세대주 여부<span class="required">*</span></label><select id="householder" name="householder" required><option value="no">세대원</option><option value="yes">세대주</option><option value="separated">분리 세대주</option></select></div>
-            <div class="field"><label for="marital">혼인 상태</label><select id="marital" name="marital"><option>미혼</option><option>기혼</option><option>기타</option></select></div>
-            <div class="field"><label for="withParents">부모와 동거 여부</label><select id="withParents" name="withParents"><option>동거</option><option>별도 거주</option></select></div>
-            <div class="field"><label for="policyHistory">기존 정책 참여 이력<span class="required">*</span></label><select id="policyHistory" name="policyHistory" required><option value="none">없음</option><option value="yes">있음</option><option value="unknown">잘 모르겠음</option></select></div>
-            <div class="field full conditional-field" id="policyHistoryDetailField"><label for="policyHistoryDetail">참여 이력 상세<span class="required">*</span></label><input id="policyHistoryDetail" name="policyHistoryDetail" placeholder="사업명, 참여기간, 지원 내용 입력"></div>
-            <div class="field full"><label for="benefitHistory">현재 받고 있는 지원금</label><input id="benefitHistory" name="benefitHistory" placeholder="예: 국가장학금, 주거급여 (없으면 비워두세요)"></div>
-          </div>
-        </section>
-        <section class="form-section">
-          <h3>AI가 필요할 때만 확인하는 조건</h3>
-          <p class="form-hint">취약계층·병역·재산은 모든 정책에 필요하지 않아 지금 입력하지 않습니다. 관련 조건이 있는 정책을 발견하면 아래와 같은 질문으로 확정합니다.</p>
-          <div class="ai-question-list">
-            <div class="ai-question-item"><div class="question-icon">?</div><div><strong>취약계층 해당 여부</strong><span>기초생활수급·차상위·한부모 등 우대 및 별도 기준 판정</span></div><button class="btn small ghost optional-question" type="button" data-topic="vulnerable">미리 답변</button></div>
-            <div class="ai-question-item"><div class="question-icon">?</div><div><strong>병역 상태</strong><span>복무기간에 따른 연령 상한 연장 정책에만 사용</span></div><button class="btn small ghost optional-question" type="button" data-topic="military">미리 답변</button></div>
-            <div class="ai-question-item"><div class="question-icon">?</div><div><strong>가구 재산 기준</strong><span>재산 한도가 명시된 주거·자산형성 정책에만 사용</span></div><button class="btn small ghost optional-question" type="button" data-topic="assets">미리 답변</button></div>
-          </div>
-        </section>
-        <div class="form-actions"><button class="btn ghost" type="button" data-close>취소</button><button class="btn primary" type="submit">저장하고 다시 분석</button></div>
-      </form>
-    </div>
-  </div>
-
   <div class="toast" id="toast" role="status" aria-live="polite"></div>
 
   <script>
@@ -493,35 +443,8 @@
     };
     document.querySelectorAll('.check-row input').forEach(input => input.addEventListener('change', updateDocs));
     document.getElementById('rerun').addEventListener('click', () => showToast('최신 공고문 기준으로 128개 정책을 다시 분석했어요.'));
-    document.getElementById('editProfile').addEventListener('click', () => openModal('profileOverlay'));
-    const residenceStart = document.getElementById('residenceStart');
-    const updateResidenceDuration = () => {
-      if (!residenceStart.value) return;
-      const [year, month] = residenceStart.value.split('-').map(Number);
-      const months = Math.max(0, (2026 - year) * 12 + (9 - month));
-      document.getElementById('residenceDuration').textContent = `2026년 9월 기준 약 ${months}개월 연속 거주`;
-    };
-    residenceStart.addEventListener('change', updateResidenceDuration);
-    updateResidenceDuration();
-    const policyHistory = document.getElementById('policyHistory');
-    const historyDetail = document.getElementById('policyHistoryDetail');
-    const historyDetailField = document.getElementById('policyHistoryDetailField');
-    policyHistory.addEventListener('change', () => {
-      const needsDetail = policyHistory.value === 'yes';
-      historyDetailField.classList.toggle('show', needsDetail);
-      historyDetail.required = needsDetail;
-      if (policyHistory.value === 'unknown') showToast('참여 이력이 불확실한 정책은 AI가 세부 내용을 다시 물어봅니다.');
-    });
-    document.getElementById('profileForm').addEventListener('submit', e => {
-      e.preventDefault();
-      const name = document.getElementById('userName').value.trim() || '사용자';
-      const region = document.getElementById('region').value;
-      document.querySelector('.hero h1').innerHTML = `${name}님, 받을 수 있는 정책을<br>실행 계획으로 만들었어요.`;
-      document.querySelector('.profile').textContent = name.slice(0, 1);
-      document.querySelector('.summary-card.main .note').textContent = `${region} · 중앙부처 공고 기준`;
-      closeModals();
-      showToast('수정한 조건을 저장하고 정책을 다시 분석했어요.');
-    });
+    document.getElementById('editProfile').addEventListener('click', () => { location.href = '/profile.html'; });
+    document.querySelector('.profile').addEventListener('click', () => { location.href = '/profile.html'; });
     document.getElementById('prepareBtn').addEventListener('click', () => { closeModals(); document.getElementById('documents').scrollIntoView({behavior:'smooth'}); showToast('필요 서류와 권장 일정을 준비 목록에 담았어요.'); });
   </script>
 </body>
