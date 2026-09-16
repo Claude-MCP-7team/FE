@@ -74,25 +74,35 @@ const reverseEnumMap = {
   employment_status: { job_seeking: 'unemployed', employed: 'employed', founder: 'self-employed' },
   marital_status: { single: 'single', married: 'married' },
 };
-export function toBackendProfile(draft, { receivedPolicyIds = [], similarProgramParticipation2y = null, incomeBasis = null, householdIncomeRatioMedian = null } = {}) {
+export function toBackendProfile(draft, { receivedPolicyIds = [], similarProgramParticipation2y = null, incomeBasis = null, householdIncomeRatioMedian = null, residenceContinuous = undefined, consent = undefined } = {}) {
   const unsupported = ['personal_income', 'household_income', 'employment_type'].filter(key => draft?.[key] !== null && draft?.[key] !== undefined && draft?.[key] !== '');
   if (draft?.policy_history === 'yes') unsupported.push('policy_history');
   if (unsupported.length) throw new ApiError(`BE 계약에 없는 입력값이 있습니다: ${unsupported.join(', ')}`, { code: 'PROFILE_MAPPING_REQUIRED' });
   const value = key => draft?.[key] || null;
+  const mapRequired = (field, raw) => {
+    if (raw === null || raw === undefined || raw === '') return null;
+    const mapped = enumMap[field][raw];
+    if (!mapped) throw new ApiError(`Unsupported ${field} value: ${raw}`, { code: 'PROFILE_MAPPING_REQUIRED' });
+    return mapped;
+  };
+  const region = draft?.region;
+  if (region && !regionCodes[region]) throw new ApiError(`Unsupported region value: ${region}`, { code: 'PROFILE_MAPPING_REQUIRED' });
+  const core = {
+    birth_date: draft.birth_date,
+    region_code: regionCodes[region] ?? '',
+    residence_start_date: value('residence_start_date'),
+    education: mapRequired('education', draft.education),
+    employment_status: mapRequired('employment_status', draft.employment_status),
+    employment_start_date: null,
+    marital_status: mapRequired('marital_status', draft.marital_status),
+    household_size: draft.household_size === '' ? null : draft.household_size,
+    income_basis: incomeBasis, household_income_ratio_median: householdIncomeRatioMedian,
+  };
+  if (typeof residenceContinuous === 'boolean') core.residence_continuous = residenceContinuous;
   return {
-    core: {
-      birth_date: draft.birth_date,
-      region_code: regionCodes[draft.region] ?? draft.region ?? '',
-      residence_start_date: value('residence_start_date'), residence_continuous: true,
-      education: enumMap.education[draft.education] ?? null,
-      employment_status: enumMap.employment_status[draft.employment_status] ?? null,
-      employment_start_date: null,
-      marital_status: enumMap.marital_status[draft.marital_status] ?? null,
-      household_size: draft.household_size === '' ? null : draft.household_size,
-      income_basis: incomeBasis, household_income_ratio_median: householdIncomeRatioMedian,
-    },
+    core,
     history: { received_policy_ids: receivedPolicyIds, similar_program_participation_2y: similarProgramParticipation2y },
-    answers: {}, consent: { terms_version: '1.0', privacy_agreed_at: null, retention_days: 90 },
+    answers: {}, consent: consent ?? { privacy_agreed_at: null },
   };
 }
 

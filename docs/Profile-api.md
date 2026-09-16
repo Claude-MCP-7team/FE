@@ -15,7 +15,9 @@ BE `dev`의 세션 계약에 맞춘 FE API 클라이언트는 `src/profile-api.j
 
 `toBackendProfile()`은 기존 Profile 폼의 평면 draft를 BE의 `core/history/answers/consent` 구조로 변환합니다. 지역·학력·고용상태·혼인상태처럼 UI 값과 BE enum이 다른 값은 여기서 변환합니다.
 
-현재 UI에 존재하지만 BE `UserProfile`에 대응 필드가 없는 `personal_income`, `household_income`, `employment_type` 값은 조용히 버리지 않고 `PROFILE_MAPPING_REQUIRED` 오류를 발생시킵니다. 실제 폼 제출을 연결할 때는 해당 값을 BE 필드로 바꾸거나, 팀에서 수집하지 않기로 결정한 뒤 제거해야 합니다.
+현재 UI에 존재하지만 BE `UserProfile`에 대응 필드가 없는 `personal_income`, `household_income`, `employment_type` 값과 BE enum에 대응하지 않는 선택지는 조용히 버리지 않고 `PROFILE_MAPPING_REQUIRED` 오류를 발생시킵니다. 실제 폼 제출을 연결할 때는 해당 값을 BE 필드로 바꾸거나, 팀에서 수집하지 않기로 결정한 뒤 제거해야 합니다.
+
+FE가 묻지 않는 `residence_continuous`는 payload에서 생략해 BE 기본값을 사용합니다. 동의 화면이 없는 현재 단계에서는 약관 버전을 임의로 고정하지 않고 `privacy_agreed_at: null`만 전달하며, `consent` 옵션으로 실제 동의 정보를 주입할 수 있습니다.
 
 API 주소는 `globalThis.__YPC_API_BASE__`로 지정할 수 있으며, 지정하지 않으면 현재 origin을 사용합니다.
 
