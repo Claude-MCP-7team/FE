@@ -1,5 +1,5 @@
 import { choices, emptyProfile, todayLocal, validateProfile, readDraft, saveDraft, removeDraft } from './profile.js';
-const escape = value => String(value ?? '').replace(/[&<>"']/g, char => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[char]);
+import { escape } from './dom.js';
 const labels = { birth_date: '생년월일', region: '현재 거주지역', residence_start_date: '연속 거주 시작일', education: '학력 상태', employment_status: '취업 상태', employment_type: '근로 형태', personal_income: '개인 월 소득', household_income: '가구 월 소득', household_size: '가구원 수', marital_status: '혼인 상태', policy_history: '기존 정책 참여 이력' };
 function field(key, required = false) {
   const hint = ['personal_income', 'household_income'].includes(key) ? '원 단위 · 모르면 비워두세요. 소득이 없으면 0을 입력하세요.' : key === 'household_size' ? '본인을 포함한 인원 · 모르면 비워두세요.' : key === 'residence_start_date' ? '현재 지역에서 중단 없이 거주하기 시작한 날짜예요.' : !required ? '확실하지 않으면 모름 / 미입력을 선택해 주세요.' : '';

@@ -1,9 +1,10 @@
 import { statuses, validateFixture, parseRoute } from './contracts.js';
 import { mountProfile } from './profile-form.js';
+import { escape } from './dom.js';
+import { createPageLoader } from './page-loader.js';
 const main = document.querySelector('main');
 let data;
 let filter = 'all';
-const escape = value => String(value ?? '').replace(/[&<>"']/g, char => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[char]);
 const badge = status => `<span class="badge ${status}">${statuses[status].symbol} ${statuses[status].label}</span>`;
 const link = (href, text) => `<a class="button" href="#/${href}">${text}</a>`;
 const heading = (title, description) => `<div class="hero"><span class="eyebrow">나에게 맞는 다음 단계</span><h1>${title}</h1><p class="muted">${description}</p></div>`;
@@ -35,30 +36,41 @@ function schedule() {
   return heading('신청 준비를 한눈에', '필요서류와 신청 일정을 연결하는 화면 예시입니다.') + `<div class="grid"><section class="card"><h2>필요서류</h2>${data.documents.map(d => `<h3>${escape(d.name)} · ${d.required ? '필수' : '선택'}</h3><p>${escape(policy(d.policy_id).name)}</p><p>발급처: ${escape(d.issuer)} / 예상 ${d.estimated_days}일</p><button disabled>준비 완료 체크 · M4 연결 예정</button>`).join('')}</section><section class="card"><h2>신청 타임라인</h2>${data.schedules.map(s => `<h3>${escape(policy(s.policy_id).name)}</h3><dl><dt>준비 시작일</dt><dd>${escape(s.preparation_date)}</dd><dt>권장 신청일</dt><dd>${escape(s.recommended_date)}</dd><dt>마감일</dt><dd>${escape(s.deadline)}</dd></dl>`).join('')}</section></div>`;
 }
 function missing() { return heading('화면을 찾을 수 없습니다', '주소를 확인하거나 정책 결과로 돌아가세요.') + link('results', '정책 결과로'); }
-function render() {
-  if (!data) return;
+function renderPage(loadedData) {
+  data = loadedData;
   const { page, id } = parseRoute(location.hash);
   const pages = { results, profile, questions, combinations, schedule, policies: () => detail(id), analysis: () => heading('분석을 시작할 준비가 되었어요', '프로필 저장 → 분석 요청 → 결과 조회 순서입니다. 현재 실제 분석은 연결되지 않았습니다.') + link('results', 'Mock 결과 보기') };
   main.innerHTML = (Object.hasOwn(pages, page) ? pages[page] : missing)();
   if (page === 'profile') mountProfile(main.querySelector('#profile-content'));
+  updatePageMeta();
+}
+function updatePageMeta() {
+  const { page } = parseRoute(location.hash);
   document.querySelectorAll('nav a').forEach(a => { if (a.hash === `#/${page}`) a.setAttribute('aria-current', 'page'); else a.removeAttribute('aria-current'); });
   document.title = `${main.querySelector('h1')?.textContent ?? '정책 결과'} · YouthFit AI`;
 }
-async function load() {
-  main.innerHTML = '<div class="state" role="status">예시 정책 데이터를 불러오고 있습니다…</div>';
-  try {
+const loader = createPageLoader({
+  needsData: () => ['results', 'policies', 'questions', 'combinations', 'schedule'].includes(parseRoute(location.hash).page),
+  renderPage,
+  renderLoading: () => {
+    main.innerHTML = '<div class="state" role="status">예시 정책 데이터를 불러오고 있습니다…</div>';
+    updatePageMeta();
+  },
+  renderError: () => {
+    main.innerHTML = '<div class="state" role="alert"><h1>데이터를 불러오지 못했어요</h1><p>개발 서버와 Mock 파일을 확인한 뒤 다시 시도하세요.</p><button data-retry>다시 시도</button></div>';
+    updatePageMeta();
+  },
+  loadData: async () => {
     const response = await fetch('/mocks/scenario.json');
     if (!response.ok) throw new Error('Mock 데이터를 불러오지 못했습니다.');
-    data = validateFixture(await response.json());
-    render();
-  } catch {
-    main.innerHTML = '<div class="state" role="alert"><h1>데이터를 불러오지 못했어요</h1><p>개발 서버와 Mock 파일을 확인한 뒤 다시 시도하세요.</p><button data-retry>다시 시도</button></div>';
-  }
-}
+    return validateFixture(await response.json());
+  },
+});
 main.addEventListener('click', event => {
   const target = event.target.closest('button');
-  if (target?.dataset.filter) { filter = target.dataset.filter; render(); main.querySelector(`[data-filter="${filter}"]`).focus(); }
-  if (target?.hasAttribute('data-retry')) load();
+  if (target?.dataset.filter) { filter = target.dataset.filter; loader.show(); main.querySelector(`[data-filter="${filter}"]`).focus(); }
+  if (target?.hasAttribute('data-retry')) loader.load();
 });
-window.addEventListener('hashchange', () => { render(); main.focus(); window.scrollTo(0, 0); });
-load();
+window.addEventListener('hashchange', () => { loader.show(); main.focus(); window.scrollTo(0, 0); });
+loader.show();
+loader.load();

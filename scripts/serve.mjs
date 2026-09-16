@@ -4,8 +4,8 @@ import { resolve, extname, sep } from 'node:path';
 import { fileURLToPath } from 'node:url';
 export function createServer({ prototype = false } = {}) {
 const root = fileURLToPath(new URL('../', import.meta.url));
-const shared = ['/profile.html', '/src/profile.js', '/src/profile-form.js', '/src/profile-page.js', '/src/profile.css'];
-const allowed = new Set([...shared, ...(prototype ? ['/index.html'] : ['/index.html', '/src/app.js', '/src/contracts.js', '/src/styles.css', '/mocks/scenario.json'])]);
+const shared = ['/profile.html', '/src/profile.js', '/src/profile-form.js', '/src/profile-page.js', '/src/profile.css', '/src/dom.js'];
+const allowed = new Set([...shared, ...(prototype ? ['/index.html'] : ['/index.html', '/src/app.js', '/src/contracts.js', '/src/styles.css', '/src/page-loader.js', '/mocks/scenario.json'])]);
 const types = { '.html': 'text/html', '.js': 'text/javascript', '.css': 'text/css', '.json': 'application/json' };
 return http.createServer(async (req, res) => {
   try {
