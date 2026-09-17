@@ -24,15 +24,28 @@ export function mergeProfileDraft(draft, original) {
 export function createProfileRepository(api) {
   let original = null;
   let loaded = false;
-  let busy = false;
-  const exclusive = async action => {
-    if (busy) throw new ApiError('이전 요청이 끝난 뒤 다시 시도해 주세요.', { code: 'REQUEST_PENDING' });
-    busy = true;
-    try { return await action(); } finally { busy = false; }
+  let pending = null;
+  const exclusive = async (kind, action) => {
+    if (pending) throw new ApiError('이전 요청이 끝난 뒤 다시 시도해 주세요.', { code: 'REQUEST_PENDING' });
+    const operation = { kind, promise: null };
+    pending = operation;
+    operation.promise = (async () => {
+      try { return await action(); } finally { pending = null; }
+    })();
+    return operation.promise;
   };
   return {
     validate,
-    load: () => exclusive(async () => {
+    async loadForForm() {
+      if (pending?.kind === 'load') return pending.promise;
+      if (pending) {
+        // The originating form handles mutation errors. Re-entry still needs a fresh read.
+        try { await pending.promise; } catch { /* Read the actual server state below. */ }
+        return this.loadForForm();
+      }
+      return this.load();
+    },
+    load: () => exclusive('load', async () => {
       loaded = false;
       try { original = await api.get(); }
       catch (error) {
@@ -45,7 +58,7 @@ export function createProfileRepository(api) {
       loaded = true;
       return original ? fromBackendProfile(original) : null;
     }),
-    save: draft => exclusive(async () => {
+    save: draft => exclusive('save', async () => {
       if (!loaded) throw new ApiError('기존 조건을 먼저 불러와 주세요.', { code: 'PROFILE_NOT_LOADED' });
       const { value, errors } = validate(draft);
       if (Object.keys(errors).length) throw new ApiError('입력 내용을 확인해 주세요.', { code: 'INVALID_PROFILE', detail: errors });
@@ -54,7 +67,7 @@ export function createProfileRepository(api) {
       original = next;
       return fromBackendProfile(next);
     }),
-    remove: () => exclusive(async () => {
+    remove: () => exclusive('remove', async () => {
       await api.remove();
       original = null;
       loaded = true;

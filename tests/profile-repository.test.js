@@ -8,6 +8,38 @@ import { createProfileApi, fromBackendProfile, toBackendProfile } from '../src/p
 const draft = { birth_date: '2000-01-01', region: 'gyeonggi-yongin', residence_start_date: '2020-01-01', education: 'graduated', employment_status: 'employed', marital_status: 'single', household_size: 2, personal_income: null, household_income: null, employment_type: null, policy_history: null };
 const stored = () => ({ ...toBackendProfile(draft), core: { ...toBackendProfile(draft).core, employment_start_date: '2023-01-01', income_basis: 'household_incl_parents', household_income_ratio_median: 120, residence_continuous: false }, history: { received_policy_ids: ['P1'], similar_program_participation_2y: false }, answers: { housing: true }, consent: { terms_version: '1.0', privacy_agreed_at: '2026-09-01T00:00:00Z', retention_days: 90 } });
 
+test('form loads during save or delete wait and share a fresh read of the resulting state', async () => {
+  for (const kind of ['save', 'remove']) {
+    let backend = stored(); let finish; let reads = 0;
+    const repository = createProfileRepository({
+      get: async () => { reads++; return backend; },
+      upsert: value => new Promise(resolve => { finish = () => { backend = value; resolve(); }; }),
+      remove: () => new Promise(resolve => { finish = () => { backend = null; resolve(); }; }),
+    });
+    const before = await repository.loadForForm();
+    const mutation = kind === 'save' ? repository.save({ ...before, household_size: 5 }) : repository.remove();
+    const reentry1 = repository.loadForForm(); const reentry2 = repository.loadForForm();
+    assert.equal(reads, 1);
+    finish(); await mutation;
+    const [one, two] = await Promise.all([reentry1, reentry2]);
+    assert.equal(reads, 2); assert.deepEqual(one, two);
+    if (kind === 'save') assert.equal(one.household_size, 5); else assert.equal(one, null);
+  }
+});
+
+test('form reentry after a failed mutation reads the server and does not swallow read failures', async () => {
+  let rejectSave; let failRead = false;
+  const repository = createProfileRepository({ get: async () => { if (failRead) throw new Error('read failed'); return stored(); }, upsert: () => new Promise((resolve, reject) => { rejectSave = reject; }) });
+  const before = await repository.loadForForm();
+  const saving = repository.save(before);
+  const saveFailure = assert.rejects(saving, /write failed/);
+  const reentry = repository.loadForForm();
+  const readFailure = assert.rejects(reentry, /read failed/);
+  failRead = true; rejectSave(new Error('write failed'));
+  await Promise.all([saveFailure, readFailure]);
+  failRead = false; assert.deepEqual(await repository.loadForForm(), before);
+});
+
 test('editing one field preserves every hidden server field and leaves the source untouched', async () => {
   const original = stored(); const snapshot = structuredClone(original); let sent;
   const repository = createProfileRepository({ get: async () => original, upsert: async value => { sent = value; } });

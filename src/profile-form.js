@@ -60,7 +60,7 @@ export function mountProfile(container, { server = apiBase !== null, repository 
     loaded = false; clearErrors(); setBusy(true); status.textContent = '저장된 조건을 불러오는 중이에요.';
     try {
       repository ??= serverRepository ??= createProfileRepository(createProfileApi({ baseUrl: apiBase ?? '' }));
-      saved = await repository.load(); populate(saved); loaded = true; retry.hidden = true;
+      saved = await repository.loadForForm(); populate(saved); loaded = true; retry.hidden = true;
       status.textContent = saved ? '서버에 저장한 조건을 불러왔어요.' : '조건을 입력한 뒤 서버에 저장해 주세요.';
     } catch { retry.hidden = false; failure('저장된 조건을 불러오지 못했어요. 다시 불러온 뒤 수정해 주세요.'); }
     finally { setBusy(false); }
