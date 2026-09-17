@@ -62,7 +62,8 @@ export function createProfileApi({ baseUrl = globalThis.__YPC_API_BASE__ ?? '', 
     async put(profile) {
       const id = readSession();
       if (!id) throw new ApiError('저장할 세션이 없습니다.', { code: 'NO_SESSION' });
-      await request(`/v1/sessions/${encodeURIComponent(id)}`, { method: 'PUT', body: JSON.stringify(profile) });
+      try { await request(`/v1/sessions/${encodeURIComponent(id)}`, { method: 'PUT', body: JSON.stringify(profile) }); }
+      catch (error) { if (error instanceof ApiError && error.status === 404) clearSession(); throw error; }
       return profile;
     },
     async upsert(profile) { return readSession() ? this.put(profile) : (await this.create(profile), profile); },
@@ -129,9 +130,9 @@ export function fromBackendProfile(profile = {}) {
     birth_date: core.birth_date ?? '',
     region: reverseRegionCodes[core.region_code] ?? core.region_code ?? '',
     residence_start_date: core.residence_start_date ?? '',
-    education: reverseEnumMap.education[core.education] ?? '',
-    employment_status: reverseEnumMap.employment_status[core.employment_status] ?? '',
-    marital_status: reverseEnumMap.marital_status[core.marital_status] ?? '',
+    education: reverseEnumMap.education[core.education] ?? core.education ?? '',
+    employment_status: reverseEnumMap.employment_status[core.employment_status] ?? core.employment_status ?? '',
+    marital_status: reverseEnumMap.marital_status[core.marital_status] ?? core.marital_status ?? '',
     household_size: core.household_size ?? '',
     personal_income: null,
     household_income: null,

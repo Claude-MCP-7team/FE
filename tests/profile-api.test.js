@@ -71,3 +71,16 @@ test('interrupted response bodies become retryable network errors', async () => 
   await assert.rejects(api.get(), e => e instanceof ApiError && e.code === 'NETWORK_ERROR');
   assert.equal(api.sessionId, id);
 });
+
+test('expired PUT clears the session and an explicit retry creates a new session', async () => {
+  const store = storage();
+  store.setItem('ypc.session-id.v1', '123e4567-e89b-42d3-a456-426614174000');
+  const f = fakeFetch([{ status: 404 }, { status: 201, body: '{"session_id":"123e4567-e89b-42d3-a456-426614174001"}' }]);
+  const api = createProfileApi({ storage: store, fetchImpl: f.fetch });
+  await assert.rejects(api.upsert({ core: {} }), e => e.status === 404);
+  assert.equal(api.sessionId, null);
+  assert.equal(f.calls.length, 1);
+  await api.upsert({ core: {} });
+  assert.equal(f.calls[1].options.method, 'POST');
+  assert.equal(f.calls[1].options.headers.has('X-Session-Id'), false);
+});
