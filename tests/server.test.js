@@ -10,7 +10,7 @@ for (const prototype of [false, true]) {
     await once(server, 'listening');
     t.after(() => new Promise(resolve => { server.close(resolve); server.closeAllConnections(); }));
     const base = `http://127.0.0.1:${server.address().port}`;
-    const allowed = [...(prototype ? ['/', '/index.html'] : ['/', '/index.html', '/src/app.js', '/src/contracts.js', '/src/styles.css', '/src/page-loader.js', '/mocks/scenario.json']), '/profile.html', '/src/profile.js', '/src/profile-form.js', '/src/profile-page.js', '/src/profile.css', '/src/dom.js', '/src/profile-api.js'];
+    const allowed = [...(prototype ? ['/', '/index.html'] : ['/', '/index.html', '/src/app.js', '/src/contracts.js', '/src/styles.css', '/src/page-loader.js', '/mocks/scenario.json']), '/profile.html', '/src/profile.js', '/src/profile-form.js', '/src/profile-page.js', '/src/profile.css', '/src/dom.js', '/src/profile-api.js', '/src/profile-repository.js', '/src/runtime-config.js'];
     for (const path of allowed) {
       const response = await fetch(base + path);
       assert.equal(response.status, 200, path);
@@ -23,3 +23,15 @@ for (const prototype of [false, true]) {
     }
   });
 }
+
+test('runtime config defaults to drafts and safely serializes an explicit API address', async t => {
+  for (const apiBase of [null, '', 'http://127.0.0.1:8000', 'https://example.test/";throw Error(1)//']) {
+    const server = createServer({ apiBase });
+    server.listen(0, '127.0.0.1'); await once(server, 'listening');
+    t.after(() => new Promise(resolve => { server.close(resolve); server.closeAllConnections(); }));
+    const response = await fetch(`http://127.0.0.1:${server.address().port}/src/runtime-config.js`);
+    assert.equal(response.status, 200);
+    assert.equal(response.headers.get('Cache-Control'), 'no-store');
+    assert.equal(await response.text(), `export const apiBase = ${JSON.stringify(apiBase)};`);
+  }
+});
