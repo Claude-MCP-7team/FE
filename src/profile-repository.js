@@ -1,5 +1,5 @@
 import { ApiError, fromBackendProfile, toBackendProfile } from './profile-api.js';
-import { choices, emptyProfile, validateProfile } from './profile.js';
+import { serverChoices, emptyProfile, validateProfile } from './profile.js';
 
 const editableCore = { birth_date: 'birth_date', region: 'region_code', residence_start_date: 'residence_start_date', education: 'education', employment_status: 'employment_status', marital_status: 'marital_status', household_size: 'household_size' };
 const same = (a, b) => (a ?? '') === (b ?? '');
@@ -75,10 +75,16 @@ export function createProfileRepository(api) {
   };
 
   function validate(input) {
-    const checked = validateProfile(input);
+    const checked = validateProfile(input, undefined, { choiceSets: serverChoices, requireResidence: false });
     const before = original ? fromBackendProfile(original) : null;
-    if (before) for (const key of Object.keys(choices)) {
+    if (before) for (const key of Object.keys(serverChoices)) {
       if (checked.value[key] && same(checked.value[key], before[key])) delete checked.errors[key];
+    }
+    for (const key of ['personal_income', 'household_income', 'employment_type']) {
+      if (checked.value[key] !== null && checked.value[key] !== '') checked.errors[key] = '현재 서버에 저장할 수 없는 항목이에요. 비워두세요.';
+    }
+    if (before ? !same(checked.value.policy_history, before.policy_history) : checked.value.policy_history === 'yes') {
+      checked.errors.policy_history = '참여 정책 목록이 준비되면 수정할 수 있어요. 기존 값을 유지해 주세요.';
     }
     return checked;
   }

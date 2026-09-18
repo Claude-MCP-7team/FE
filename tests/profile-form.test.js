@@ -68,3 +68,33 @@ test('a genuine shared read failure is visible and the form retry recovers', asy
   assert.equal(retry.hidden, true);
   assert.equal(second.get('form').elements.namedItem('birth_date').disabled, false);
 });
+
+test('server form exposes confirmed choices and focuses field errors before any save request', async t => {
+  const previousDocument = globalThis.document;
+  const previousFormData = globalThis.FormData;
+  globalThis.document = { createElement: element };
+  const input = { birth_date: '2000-01-01', region: 'gyeonggi-yongin', residence_start_date: '', personal_income: '0' };
+  globalThis.FormData = class { constructor() { return Object.entries(input); } };
+  t.after(() => { globalThis.document = previousDocument; globalThis.FormData = previousFormData; });
+  let writes = 0;
+  const repository = createProfileRepository({ get: async () => null, upsert: async () => { writes++; } });
+  const surface = formSurface();
+  await mountProfile(surface.container, { server: true, repository }).ready;
+  const html = surface.container.innerHTML;
+  assert.match(html, /value="high_school_graduated"/);
+  assert.match(html, /value="neet"/);
+  assert.match(html, /value="widowed"/);
+  assert.doesNotMatch(html, /value="on-leave"/);
+  const residenceInput = html.match(/<input[^>]*name="residence_start_date"[^>]*>/)[0];
+  assert.doesNotMatch(residenceInput, /\brequired\b/);
+  assert.match(html.match(/<input[^>]*name="birth_date"[^>]*>/)[0], /\brequired\b/);
+  await surface.get('form').listeners.submit({ preventDefault() {} });
+  assert.equal(writes, 0);
+  assert.equal(surface.get('#pf-errors').hidden, false);
+  assert.match(surface.get('#pf-errors').innerHTML, /data-pf-focus="personal_income"/);
+  assert.match(surface.get('#pf-personal_income-error').textContent, /비워두세요/);
+  let focused = false;
+  surface.get('form').elements.namedItem('personal_income').focus = () => { focused = true; };
+  surface.get('#pf-errors').listeners.click({ preventDefault() {}, target: { closest: () => ({ dataset: { pfFocus: 'personal_income' } }) } });
+  assert.equal(focused, true);
+});
