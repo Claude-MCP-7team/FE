@@ -73,7 +73,7 @@ test('server form exposes confirmed choices and focuses field errors before any 
   const previousDocument = globalThis.document;
   const previousFormData = globalThis.FormData;
   globalThis.document = { createElement: element };
-  const input = { birth_date: '2000-01-01', region: 'gyeonggi-yongin', residence_start_date: '', personal_income: '0' };
+  const input = { birth_date: '2000-01-01', region: '41465', residence_start_date: '', personal_income: '0' };
   globalThis.FormData = class { constructor() { return Object.entries(input); } };
   t.after(() => { globalThis.document = previousDocument; globalThis.FormData = previousFormData; });
   let writes = 0;
@@ -97,4 +97,26 @@ test('server form exposes confirmed choices and focuses field errors before any 
   surface.get('form').elements.namedItem('personal_income').focus = () => { focused = true; };
   surface.get('#pf-errors').listeners.click({ preventDefault() {}, target: { closest: () => ({ dataset: { pfFocus: 'personal_income' } }) } });
   assert.equal(focused, true);
+});
+
+test('server form labels district codes precisely and flags preserved broad codes without rewriting them', async t => {
+  const previousDocument = globalThis.document;
+  globalThis.document = { createElement: element };
+  t.after(() => { globalThis.document = previousDocument; });
+  for (const region of ['41465', '41', '00', '11110']) {
+    const repository = createProfileRepository({ get: async () => ({ core: { birth_date: '2000-01-01', region_code: region } }) });
+    const surface = formSurface();
+    await mountProfile(surface.container, { server: true, repository }).ready;
+    assert.match(surface.container.innerHTML, /value="41465">경기도 용인시 수지구/);
+    assert.match(surface.container.innerHTML, /value="41461">경기도 용인시 처인구/);
+    assert.match(surface.container.innerHTML, /value="41463">경기도 용인시 기흥구/);
+    assert.doesNotMatch(surface.container.innerHTML, /value="(?:gyeonggi-yongin|gyeonggi-other|other)">/);
+    const control = surface.get('form').elements.namedItem('region');
+    assert.equal(control.value, region);
+    if (region === '41465') assert.equal(control.children.length, 0);
+    else {
+      assert.equal(control.children[0].value, region);
+      assert.match(control.children[0].textContent, /상세 지역 확인 필요/);
+    }
+  }
 });

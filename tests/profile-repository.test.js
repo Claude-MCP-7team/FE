@@ -5,7 +5,7 @@ import { once } from 'node:events';
 import { createProfileRepository } from '../src/profile-repository.js';
 import { createProfileApi, fromBackendProfile, toBackendProfile } from '../src/profile-api.js';
 
-const draft = { birth_date: '2000-01-01', region: 'gyeonggi-yongin', residence_start_date: '2020-01-01', education: 'graduated', employment_status: 'employed', marital_status: 'single', household_size: 2, personal_income: null, household_income: null, employment_type: null, policy_history: null };
+const draft = { birth_date: '2000-01-01', region: '41465', residence_start_date: '2020-01-01', education: 'graduated', employment_status: 'employed', marital_status: 'single', household_size: 2, personal_income: null, household_income: null, employment_type: null, policy_history: null };
 const stored = () => ({ ...toBackendProfile(draft), core: { ...toBackendProfile(draft).core, employment_start_date: '2023-01-01', income_basis: 'household_incl_parents', household_income_ratio_median: 120, residence_continuous: false }, history: { received_policy_ids: ['P1'], similar_program_participation_2y: false }, answers: { housing: true }, consent: { terms_version: '1.0', privacy_agreed_at: '2026-09-01T00:00:00Z', retention_days: 90 } });
 
 test('form loads during save or delete wait and share a fresh read of the resulting state', async () => {
@@ -67,6 +67,37 @@ test('failed initial load blocks saving until a successful retry', async () => {
   await assert.rejects(repository.load());
   await assert.rejects(repository.save(draft), e => e.code === 'PROFILE_NOT_LOADED');
   assert.equal(writes, 0); fail = false; await repository.load(); await repository.save(draft); assert.equal(writes, 1);
+});
+
+test('new profiles cannot submit broad draft regions and precise district changes preserve hidden data', async () => {
+  let writes = 0; let sent;
+  const repository = createProfileRepository({ get: async () => null, upsert: async value => { writes++; sent = value; } });
+  await repository.load();
+  for (const region of ['gyeonggi-yongin', 'gyeonggi-other', 'other', '41', '00', '11110']) {
+    assert.ok(repository.validate({ ...draft, region }).errors.region);
+    await assert.rejects(repository.save({ ...draft, region }), e => e.code === 'INVALID_PROFILE' && !!e.detail.region);
+  }
+  assert.equal(writes, 0);
+  await repository.save({ ...draft, region: '41461' });
+  assert.equal(sent.core.region_code, '41461');
+  await repository.save({ ...draft, region: '41463' });
+  assert.equal(sent.core.region_code, '41463');
+});
+
+test('stored region codes outside the selectable list survive unrelated edits but cannot be substituted', async () => {
+  for (const code of ['41', '00', '11110']) {
+    const original = stored(); original.core.region_code = code; let sent;
+    const repository = createProfileRepository({ get: async () => original, upsert: async value => { sent = value; } });
+    const loaded = await repository.load();
+    assert.equal(loaded.region, code);
+    await repository.save({ ...loaded, household_size: 4 });
+    const expected = structuredClone(original); expected.core.household_size = 4;
+    assert.deepEqual(sent, expected);
+    await assert.rejects(repository.save({ ...loaded, region: code === '00' ? '41' : '00' }), e => e.code === 'INVALID_PROFILE');
+    await repository.save({ ...loaded, region: '41461', household_size: 4 });
+    expected.core.region_code = '41461';
+    assert.deepEqual(sent, expected);
+  }
 });
 
 test('unsupported inputs fail before writing and failed writes preserve the saved baseline', async () => {

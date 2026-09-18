@@ -7,9 +7,16 @@ export const choices = {
   marital_status: [['single', '미혼'], ['married', '기혼'], ['other', '기타']],
   policy_history: [['none', '없음'], ['yes', '있음']],
 };
-// Confirmed BE enums; legacy draft IDs retain their explicit API mappings.
+// Five-digit district codes, verified against code.go.kr. Used by UI and API together.
+export const serverRegions = Object.freeze({
+  '41461': '경기도 용인시 처인구',
+  '41463': '경기도 용인시 기흥구',
+  '41465': '경기도 용인시 수지구',
+});
+// Confirmed BE enums; keep non-region options aligned with profile-api.js enumMap.
 export const serverChoices = {
   ...choices,
+  region: Object.entries(serverRegions),
   education: [['middle_or_below', '중학교 졸업 이하'], ['high_school_enrolled', '고등학교 재학'], ['high_school_graduated', '고등학교 졸업'], ['enrolled', '대학교 재학'], ['graduated', '대학교 졸업'], ['graduate_school', '대학원']],
   employment_status: [['employed', '재직 중'], ['unemployed', '구직 중'], ['student', '학생'], ['self-employed', '창업·자영업'], ['neet', '미취업·비구직']],
   marital_status: [['single', '미혼'], ['married', '기혼'], ['divorced', '이혼'], ['widowed', '사별']],
