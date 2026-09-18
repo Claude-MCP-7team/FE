@@ -22,7 +22,11 @@ BE `dev`의 세션 계약에 맞춘 FE API 클라이언트는 `src/profile-api.j
 
 `toBackendProfile()`은 기존 Profile 폼의 평면 draft를 BE의 `core/history/answers/consent` 구조로 변환합니다. 지역·학력·고용상태·혼인상태처럼 UI 값과 BE enum이 다른 값은 여기서 변환합니다.
 
+2026-09-19에 [BE Core 스키마](https://github.com/Claude-MCP-7team/BE/blob/dev/app/schemas/user.py)와 [enum 정의](https://github.com/Claude-MCP-7team/BE/blob/dev/app/schemas/enums.py)를 조회해 서버 모드의 학력 6종·취업 5종·혼인 4종 선택지를 반영했습니다. 서버 모드는 생년월일·지역만 필수이며 거주 시작일은 모르면 비워둘 수 있습니다. 입력한 날짜에는 달력·미래 날짜·출생 이전 검사를 계속 적용합니다. 임시 보관 모드의 기존 선택지와 필수 기준은 유지합니다.
+
 현재 UI에 존재하지만 BE `UserProfile`에 대응 필드가 없는 `personal_income`, `household_income`, `employment_type` 값과 BE enum에 대응하지 않는 선택지는 조용히 버리지 않고 `PROFILE_MAPPING_REQUIRED` 오류를 발생시킵니다. 서버 저장 모드에서도 해당 입력은 저장을 차단하고 안내합니다. 계약 확정 후 실제 필드와 선택지를 교체해야 합니다. `policy_history`의 기존 정책 목록은 보존하며, 목록을 표현하지 못하는 yes/no 입력으로 수정하지 않습니다.
+
+폼에서는 저장 요청 전에 미지원 입력을 항목별로 검증합니다. 소득 0원도 미지원 값으로 명시적으로 안내하며 임의로 null로 변환하지 않습니다. 오류 요약 링크로 해당 입력에 이동할 수 있습니다. Repository의 검증 실패는 필드별 `detail`을 가진 `INVALID_PROFILE`로 반환하고, API 변환기를 직접 호출할 때의 `PROFILE_MAPPING_REQUIRED` 방어도 유지합니다. 저장된 미지원 선택지는 기존 값을 그대로 유지할 때만 허용합니다.
 
 FE가 묻지 않는 `residence_continuous`는 payload에서 생략해 BE 기본값을 사용합니다. 동의 화면이 없는 현재 단계에서는 약관 버전을 임의로 고정하지 않고 `privacy_agreed_at: null`만 전달하며, `consent` 옵션으로 실제 동의 정보를 주입할 수 있습니다.
 
@@ -48,7 +52,7 @@ npm.cmd run dev
 - 삭제는 확인 버튼 후 요청합니다. 실패하면 재시도할 수 있고, 성공 또는 이미 삭제된 세션이면 화면을 초기화합니다.
 - 서버 모드는 로컬 초안 데이터를 자동 전송하지 않습니다. 탭을 닫으면 세션 ID를 잃으므로 서버에 저장된 데이터에 재접근할 수 없다는 안내를 제공합니다.
 
-현재 정책 결과는 Mock입니다. 저장 성공으로 정책 판정이나 M1 전체 완료를 표시하지 않습니다. 기존 지역 선택지·코드의 세분화, 소득 및 enum 계약 확정, 실제 동의 수집, 실제 BE/CORS와 브라우저 검증은 후속 작업입니다.
+현재 정책 결과는 Mock입니다. 저장 성공으로 정책 판정이나 M1 전체 완료를 표시하지 않습니다. 기존 지역 선택지·코드의 세분화, 소득 입력 방식과 근로 형태 수집 여부 확정, 실제 동의 수집, 실제 BE/CORS와 브라우저 검증은 후속 작업입니다.
 
 ## 검증
 

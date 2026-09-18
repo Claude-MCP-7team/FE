@@ -74,12 +74,55 @@ test('unsupported inputs fail before writing and failed writes preserve the save
   const repository = createProfileRepository({ get: async () => stored(), upsert: async value => { attempts++; if (fail) throw new Error('offline'); sent = value; } });
   const loaded = await repository.load();
   for (const change of [{ personal_income: 0 }, { employment_type: 'regular' }, { education: 'on-leave' }, { policy_history: 'none' }]) {
-    await assert.rejects(repository.save({ ...loaded, ...change }), e => e.code === 'PROFILE_MAPPING_REQUIRED');
+    const key = Object.keys(change)[0];
+    assert.ok(repository.validate({ ...loaded, ...change }).errors[key]);
+    await assert.rejects(repository.save({ ...loaded, ...change }), e => e.code === 'INVALID_PROFILE' && !!e.detail[key]);
   }
   assert.equal(attempts, 0);
   await assert.rejects(repository.save({ ...loaded, household_size: 3 }));
   fail = false; await repository.save({ ...loaded, marital_status: 'married' });
   assert.equal(sent.core.household_size, 2); assert.deepEqual(sent.answers, stored().answers);
+});
+
+test('server profiles accept confirmed enums and unknown residence dates without losing hidden fields', async () => {
+  let backend = stored(); backend.core.residence_start_date = null;
+  const repository = createProfileRepository({ get: async () => backend, upsert: async value => { backend = value; } });
+  const loaded = await repository.load();
+  assert.deepEqual(repository.validate(loaded).errors, {});
+  const cases = [
+    ['middle_or_below', 'student', 'divorced'],
+    ['high_school_enrolled', 'neet', 'widowed'],
+    ['high_school_graduated', 'employed', 'single'],
+    ['graduate_school', 'self-employed', 'married'],
+  ];
+  for (const [education, employment_status, marital_status] of cases) {
+    await repository.save({ ...loaded, education, employment_status, marital_status });
+    assert.equal(backend.core.education, education);
+    assert.equal(backend.core.employment_status, employment_status === 'self-employed' ? 'founder' : employment_status);
+    assert.equal(backend.core.marital_status, marital_status);
+    assert.equal(backend.core.residence_start_date, null);
+    assert.deepEqual(backend.answers, stored().answers);
+    assert.deepEqual(backend.history, stored().history);
+    assert.deepEqual(backend.consent, stored().consent);
+  }
+});
+
+test('server validation requires birth and region, checks supplied residence dates, and reports every unsupported input', async () => {
+  let sent;
+  const repository = createProfileRepository({ get: async () => null, upsert: async value => { sent = value; } });
+  await repository.load();
+  const minimal = { ...draft, residence_start_date: '', education: null, employment_status: null, marital_status: null };
+  await repository.save(minimal);
+  assert.equal(sent.core.residence_start_date, null);
+  for (const date of ['1900-02-29', '1999-12-31', '9999-01-01']) {
+    assert.ok(repository.validate({ ...minimal, residence_start_date: date }).errors.residence_start_date);
+  }
+  assert.ok(repository.validate({ ...minimal, birth_date: '' }).errors.birth_date);
+  assert.ok(repository.validate({ ...minimal, region: '' }).errors.region);
+  const invalid = { ...minimal, personal_income: 0, household_income: 100, employment_type: 'regular', policy_history: 'yes' };
+  assert.deepEqual(Object.keys(repository.validate(invalid).errors).sort(), ['employment_type', 'household_income', 'personal_income', 'policy_history']);
+  await assert.rejects(repository.save(invalid), e => e.code === 'INVALID_PROFILE');
+  assert.equal(sent.core.residence_start_date, null);
 });
 
 test('duplicate in-flight requests are rejected and failed deletion can be retried', async () => {

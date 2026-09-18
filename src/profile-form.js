@@ -1,20 +1,22 @@
-import { choices, emptyProfile, todayLocal, validateProfile, readDraft, saveDraft, removeDraft } from './profile.js';
+import { choices, serverChoices, emptyProfile, todayLocal, validateProfile, readDraft, saveDraft, removeDraft } from './profile.js';
 import { escape } from './dom.js';
 import { createProfileApi } from './profile-api.js';
 import { createProfileRepository } from './profile-repository.js';
 import { apiBase } from './runtime-config.js';
 let serverRepository;
 const labels = { birth_date: '생년월일', region: '현재 거주지역', residence_start_date: '연속 거주 시작일', education: '학력 상태', employment_status: '취업 상태', employment_type: '근로 형태', personal_income: '개인 월 소득', household_income: '가구 월 소득', household_size: '가구원 수', marital_status: '혼인 상태', policy_history: '기존 정책 참여 이력' };
-function field(key, required = false) {
-  const hint = ['personal_income', 'household_income'].includes(key) ? '원 단위 · 모르면 비워두세요. 소득이 없으면 0을 입력하세요.' : key === 'household_size' ? '본인을 포함한 인원 · 모르면 비워두세요.' : key === 'residence_start_date' ? '현재 지역에서 중단 없이 거주하기 시작한 날짜예요.' : !required ? '확실하지 않으면 모름 / 미입력을 선택해 주세요.' : '';
+function renderField(key, required, options, server) {
+  const hint = server && ['personal_income', 'household_income', 'employment_type'].includes(key) ? '현재 서버에 저장할 수 없는 항목이에요. 비워두세요.' : server && key === 'policy_history' ? '저장된 참여 이력은 조회만 가능해요. 참여 정책 목록이 준비되면 수정할 수 있어요.' : ['personal_income', 'household_income'].includes(key) ? '원 단위 · 모르면 비워두세요. 소득이 없으면 0을 입력하세요.' : key === 'household_size' ? '본인을 포함한 인원 · 모르면 비워두세요.' : key === 'residence_start_date' ? `현재 지역에서 중단 없이 거주하기 시작한 날짜예요.${server ? ' 모르면 비워두세요.' : ''}` : !required ? '확실하지 않으면 모름 / 미입력을 선택해 주세요.' : '';
   const attrs = `id="pf-${key}" name="${key}" aria-describedby="pf-${key}-hint pf-${key}-error" ${required ? 'required' : ''}`;
   let control;
-  if (choices[key]) control = `<select ${attrs}><option value="">${required ? '선택해 주세요' : '모름 / 미입력'}</option>${choices[key].map(([id, text]) => `<option value="${id}">${text}</option>`).join('')}</select>`;
+  if (options[key]) control = `<select ${attrs}><option value="">${required ? '선택해 주세요' : '모름 / 미입력'}</option>${options[key].map(([id, text]) => `<option value="${id}">${text}</option>`).join('')}</select>`;
   else if (key.endsWith('date')) control = `<input ${attrs} type="date" min="0001-01-01" max="${todayLocal()}">`;
   else control = `<input ${attrs} type="text" inputmode="numeric" autocomplete="off" placeholder="모르면 비워두세요">`;
   return `<div class="pf-field"><label for="pf-${key}">${labels[key]}${required ? ' <span class="pf-required">(필수)</span>' : ''}</label>${control}<small id="pf-${key}-hint">${hint}</small><span class="pf-error" id="pf-${key}-error"></span></div>`;
 }
 export function mountProfile(container, { server = apiBase !== null, repository = null } = {}) {
+  const options = server ? serverChoices : choices;
+  const field = (key, required = false) => renderField(key, key === 'residence_start_date' && server ? false : required, options, server);
   container.innerHTML = `<section class="pf-page" aria-labelledby="pf-title"><p class="pf-eyebrow">내 조건 관리</p><h1 id="pf-title">나에게 맞는 정책을 찾기 위한 첫 단계</h1><p class="pf-intro">공통 조건을 먼저 입력해 주세요. 정책별로 필요한 추가 정보는 나중에 확인해요.</p><p class="pf-notice">입력한 조건은 이 탭에만 임시 보관됩니다. 서버 저장·정책 판정은 아직 연결되지 않았어요. 탭을 닫으면 임시 조건이 사라집니다.</p><form id="pf-form" novalidate><div class="pf-errors" id="pf-errors" tabindex="-1" role="alert" hidden></div><fieldset><legend>기본 정보</legend><div class="pf-grid">${field('birth_date', true)}${field('region', true)}${field('residence_start_date', true)}</div></fieldset><fieldset><legend>학업 및 취업</legend><div class="pf-grid">${field('education')}${field('employment_status')}${field('employment_type')}${field('personal_income')}</div></fieldset><fieldset><legend>가구 및 수혜 정보</legend><div class="pf-grid">${field('household_income')}${field('household_size')}${field('marital_status')}${field('policy_history')}</div><p class="pf-footnote">참여 정책과 추가 답변은 정책·질문 목록이 준비되면 선택할 수 있어요. 이름·주민등록번호·상세주소는 입력하지 않습니다.</p></fieldset><div class="pf-actions"><button type="button" id="pf-cancel">수정 취소</button><button type="submit" class="pf-primary">입력 조건 임시 보관</button></div><p id="pf-status" role="status" aria-live="polite"></p><div class="pf-delete"><button type="button" id="pf-delete">임시 조건 삭제</button><span id="pf-confirm" hidden>입력 중인 내용과 임시 조건을 삭제할까요? <button type="button" id="pf-delete-yes">삭제</button><button type="button" id="pf-delete-no">취소</button></span></div></form></section>`;
   const form = container.querySelector('form');
   const status = container.querySelector('#pf-status');
@@ -42,7 +44,7 @@ export function mountProfile(container, { server = apiBase !== null, repository 
       const control = form.elements.namedItem(key);
       if (!control) continue;
       control.querySelectorAll('[data-saved-option]').forEach(option => option.remove());
-      if (server && choices[key] && val && !choices[key].some(([id]) => id === val)) {
+      if (server && options[key] && val && !options[key].some(([id]) => id === val)) {
         const option = document.createElement('option');
         option.value = val; option.textContent = `저장된 값 유지 (${val})`; option.dataset.savedOption = '';
         control.append(option);

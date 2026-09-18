@@ -82,9 +82,9 @@ export function createProfileApi({ baseUrl = globalThis.__YPC_API_BASE__ ?? '', 
 
 const regionCodes = { 'gyeonggi-yongin': '41465', 'gyeonggi-other': '41', other: '00' };
 const enumMap = {
-  education: { enrolled: 'university_enrolled', graduated: 'university_graduated' },
-  employment_status: { unemployed: 'job_seeking', employed: 'employed', 'self-employed': 'founder' },
-  marital_status: { single: 'single', married: 'married' },
+  education: { enrolled: 'university_enrolled', graduated: 'university_graduated', middle_or_below: 'middle_or_below', high_school_enrolled: 'high_school_enrolled', high_school_graduated: 'high_school_graduated', graduate_school: 'graduate_school' },
+  employment_status: { unemployed: 'job_seeking', employed: 'employed', 'self-employed': 'founder', student: 'student', neet: 'neet' },
+  marital_status: { single: 'single', married: 'married', divorced: 'divorced', widowed: 'widowed' },
 };
 const reverseRegionCodes = Object.fromEntries(Object.entries(regionCodes).map(([key, value]) => [value, key]));
 const reverseEnumMap = {
