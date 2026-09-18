@@ -1,3 +1,5 @@
+import { serverRegions } from './profile.js';
+
 const sessionKey = 'ypc.session-id.v1';
 const uuid = /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 
@@ -80,13 +82,12 @@ export function createProfileApi({ baseUrl = globalThis.__YPC_API_BASE__ ?? '', 
   };
 }
 
-const regionCodes = { 'gyeonggi-yongin': '41465', 'gyeonggi-other': '41', other: '00' };
+// Non-region option IDs must match serverChoices in profile.js.
 const enumMap = {
   education: { enrolled: 'university_enrolled', graduated: 'university_graduated', middle_or_below: 'middle_or_below', high_school_enrolled: 'high_school_enrolled', high_school_graduated: 'high_school_graduated', graduate_school: 'graduate_school' },
   employment_status: { unemployed: 'job_seeking', employed: 'employed', 'self-employed': 'founder', student: 'student', neet: 'neet' },
   marital_status: { single: 'single', married: 'married', divorced: 'divorced', widowed: 'widowed' },
 };
-const reverseRegionCodes = Object.fromEntries(Object.entries(regionCodes).map(([key, value]) => [value, key]));
 const reverseEnumMap = {
   education: { university_enrolled: 'enrolled', university_graduated: 'graduated' },
   employment_status: { job_seeking: 'unemployed', employed: 'employed', founder: 'self-employed' },
@@ -104,10 +105,10 @@ export function toBackendProfile(draft, { receivedPolicyIds = [], similarProgram
     return mapped;
   };
   const region = draft?.region;
-  if (region && !regionCodes[region]) throw new ApiError(`Unsupported region value: ${region}`, { code: 'PROFILE_MAPPING_REQUIRED' });
+  if (region && !Object.hasOwn(serverRegions, region)) throw new ApiError('정확한 거주지역을 목록에서 선택해 주세요.', { code: 'PROFILE_MAPPING_REQUIRED' });
   const core = {
     birth_date: draft.birth_date,
-    region_code: regionCodes[region] ?? '',
+    region_code: region || '',
     residence_start_date: value('residence_start_date'),
     education: mapRequired('education', draft.education),
     employment_status: mapRequired('employment_status', draft.employment_status),
@@ -128,7 +129,7 @@ export function fromBackendProfile(profile = {}) {
   const core = profile.core ?? {};
   return {
     birth_date: core.birth_date ?? '',
-    region: reverseRegionCodes[core.region_code] ?? core.region_code ?? '',
+    region: core.region_code ?? '',
     residence_start_date: core.residence_start_date ?? '',
     education: reverseEnumMap.education[core.education] ?? core.education ?? '',
     employment_status: reverseEnumMap.employment_status[core.employment_status] ?? core.employment_status ?? '',

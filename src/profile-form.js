@@ -6,7 +6,7 @@ import { apiBase } from './runtime-config.js';
 let serverRepository;
 const labels = { birth_date: '생년월일', region: '현재 거주지역', residence_start_date: '연속 거주 시작일', education: '학력 상태', employment_status: '취업 상태', employment_type: '근로 형태', personal_income: '개인 월 소득', household_income: '가구 월 소득', household_size: '가구원 수', marital_status: '혼인 상태', policy_history: '기존 정책 참여 이력' };
 function renderField(key, required, options, server) {
-  const hint = server && ['personal_income', 'household_income', 'employment_type'].includes(key) ? '현재 서버에 저장할 수 없는 항목이에요. 비워두세요.' : server && key === 'policy_history' ? '저장된 참여 이력은 조회만 가능해요. 참여 정책 목록이 준비되면 수정할 수 있어요.' : ['personal_income', 'household_income'].includes(key) ? '원 단위 · 모르면 비워두세요. 소득이 없으면 0을 입력하세요.' : key === 'household_size' ? '본인을 포함한 인원 · 모르면 비워두세요.' : key === 'residence_start_date' ? `현재 지역에서 중단 없이 거주하기 시작한 날짜예요.${server ? ' 모르면 비워두세요.' : ''}` : !required ? '확실하지 않으면 모름 / 미입력을 선택해 주세요.' : '';
+  const hint = server && key === 'region' ? '현재 신규 지역 선택은 용인시 3개 구를 지원합니다. 목록에 거주지역이 없으면 다른 지역을 대신 선택하지 마세요. 이전에 용인시로 저장했다면 실제 거주 구를 확인해 주세요.' : server && ['personal_income', 'household_income', 'employment_type'].includes(key) ? '현재 서버에 저장할 수 없는 항목이에요. 비워두세요.' : server && key === 'policy_history' ? '저장된 참여 이력은 조회만 가능해요. 참여 정책 목록이 준비되면 수정할 수 있어요.' : ['personal_income', 'household_income'].includes(key) ? '원 단위 · 모르면 비워두세요. 소득이 없으면 0을 입력하세요.' : key === 'household_size' ? '본인을 포함한 인원 · 모르면 비워두세요.' : key === 'residence_start_date' ? `현재 지역에서 중단 없이 거주하기 시작한 날짜예요.${server ? ' 모르면 비워두세요.' : ''}` : !required ? '확실하지 않으면 모름 / 미입력을 선택해 주세요.' : '';
   const attrs = `id="pf-${key}" name="${key}" aria-describedby="pf-${key}-hint pf-${key}-error" ${required ? 'required' : ''}`;
   let control;
   if (options[key]) control = `<select ${attrs}><option value="">${required ? '선택해 주세요' : '모름 / 미입력'}</option>${options[key].map(([id, text]) => `<option value="${id}">${text}</option>`).join('')}</select>`;
@@ -46,7 +46,9 @@ export function mountProfile(container, { server = apiBase !== null, repository 
       control.querySelectorAll('[data-saved-option]').forEach(option => option.remove());
       if (server && options[key] && val && !options[key].some(([id]) => id === val)) {
         const option = document.createElement('option');
-        option.value = val; option.textContent = `저장된 값 유지 (${val})`; option.dataset.savedOption = '';
+        option.value = val;
+        option.textContent = key === 'region' ? `기존 지역 유지 (${val}) · 상세 지역 확인 필요` : `저장된 값 유지 (${val})`;
+        option.dataset.savedOption = '';
         control.append(option);
       }
       control.value = val ?? '';

@@ -80,6 +80,7 @@ export function createProfileRepository(api) {
     if (before) for (const key of Object.keys(serverChoices)) {
       if (checked.value[key] && same(checked.value[key], before[key])) delete checked.errors[key];
     }
+    if (checked.errors.region && checked.value.region) checked.errors.region = '실제 거주하는 구를 목록에서 선택해 주세요. 다른 지역으로 대신 저장할 수는 없어요.';
     for (const key of ['personal_income', 'household_income', 'employment_type']) {
       if (checked.value[key] !== null && checked.value[key] !== '') checked.errors[key] = '현재 서버에 저장할 수 없는 항목이에요. 비워두세요.';
     }
