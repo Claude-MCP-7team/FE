@@ -8,6 +8,20 @@
 
 `src/judgement-api.js`의 `createJudgementApi().judge(profile, options)`는 `POST /v1/judge?include=all`을 한 번 호출합니다. BE 기본 응답은 부적격 정책을 생략하므로 `include=all`을 고정해 요약 건수와 전체 목록을 대조합니다. 별도 분석 ID·polling·자동 재시도는 만들지 않습니다.
 
+### Dashboard 연결 시 응답량 검토 (PR #11 리뷰 반영)
+
+현재 `include=all`은 전체 목록 검증을 위한 선택이며 모든 화면의 최종 요청 방식으로 확정한 것은 아닙니다. Dashboard 연결 PR에서 대표 정책 규모의 응답 바이트 수·요청 시간·렌더링 비용을 측정하고, 화면에 필요한 결과 범위에 따라 BE 기본 `include=default` 사용 여부를 결정합니다. 실제 응답량과 성능은 아직 측정하지 않았습니다.
+
+`include=default`를 도입할 때는 다음을 함께 변경해야 합니다.
+
+- 기본 응답은 부적격 상세를 생략해도 `summary.ineligible`에는 전체 부적격 건수를 포함합니다. 현재 검증기의 전체 목록/요약 일치 조건을 그대로 적용하면 정상 응답을 거부하므로 요청 모드별 검증이 필요합니다.
+- 생략된 부적격 결과를 빈 결과나 부적격 0건으로 표시하지 않습니다. 부적격 필터·상세 진입에 필요한 판정 결과를 언제 조회할지도 정해야 합니다.
+- 현재 `GET /v1/policies/{id}`는 공고 내용 조회이며 사용자 판정 상세를 반환하지 않습니다. 부적격 판정 상세를 대신 가져오는 API로 간주하지 않습니다.
+
+실측과 화면 요구가 정해지기 전에는 요청 모드나 검증 조건을 변경하지 않습니다.
+
+### 요청 옵션과 사용 예시
+
 - 입력은 저장된 BE `UserProfile`의 `core/history/answers/consent` 문서입니다. FE 편집용 평면 draft는 거부합니다. core의 상세 입력 유효성은 기존 폼/BE가 검증합니다.
 - 문서를 임의로 재조립하지 않아 `0`, `false`, `null`, 기존 답변과 숨겨진 필드를 유지합니다. 클라이언트가 데이터를 저장하거나 로그에 출력하지 않습니다.
 - 옵션의 `sessionId`가 있으면 `X-Session-Id` 헤더를 전송합니다. 세션 저장소는 호출자가 관리하며 판정 실패로 세션을 삭제하지 않습니다. 응답 `session_id`가 요청과 다르면 거부합니다. 익명 요청의 기대 응답은 `anonymous`입니다.
@@ -52,6 +66,8 @@ const view = toJudgementView(data);
 | unknown | UNKNOWN |
 
 `evidence.quote`는 `source_quote`, `evidence.url`은 조건의 `source_url` 또는 정책의 `origin_url`을 사용합니다. 둘 다 없으면 null로 유지합니다. 조건의 `permanently_unsatisfiable`과 개별 날짜, 정책의 verdict/confidence/담당부서/면책 문구를 보존합니다. 정책 수준 status·future_eligibility_date나 추가 질문을 생성하지 않습니다. 조건에 미래 날짜가 있어도 정책이 INELIGIBLE이면 그대로입니다. 문자열은 HTML이 아니며 실제 화면 연결 시 이스케이프가 필요합니다.
+
+`satisfiable_from`은 달력상 유효한 날짜인지와 영구 불충족 표시와의 모순만 검사합니다. 브라우저의 오늘보다 미래인지 비교하지 않습니다. BE는 KST 기준일 또는 테스트용 고정 기준일로 날짜를 계산하며 현재 판정 응답에는 기준일 필드가 없으므로, 클라이언트 시각을 근거로 정상 응답을 거부하거나 재판정하지 않습니다.
 
 ## 오류와 검증 범위
 
