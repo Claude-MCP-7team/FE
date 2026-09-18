@@ -74,7 +74,7 @@ test('new profiles cannot submit broad draft regions and precise district change
   const repository = createProfileRepository({ get: async () => null, upsert: async value => { writes++; sent = value; } });
   await repository.load();
   for (const region of ['gyeonggi-yongin', 'gyeonggi-other', 'other', '41', '00', '11110']) {
-    assert.ok(repository.validate({ ...draft, region }).errors.region);
+    assert.equal(repository.validate({ ...draft, region }).errors.region, '실제 거주하는 구를 목록에서 선택해 주세요. 다른 지역으로 대신 저장할 수는 없어요.');
     await assert.rejects(repository.save({ ...draft, region }), e => e.code === 'INVALID_PROFILE' && !!e.detail.region);
   }
   assert.equal(writes, 0);
@@ -149,7 +149,7 @@ test('server validation requires birth and region, checks supplied residence dat
     assert.ok(repository.validate({ ...minimal, residence_start_date: date }).errors.residence_start_date);
   }
   assert.ok(repository.validate({ ...minimal, birth_date: '' }).errors.birth_date);
-  assert.ok(repository.validate({ ...minimal, region: '' }).errors.region);
+  assert.equal(repository.validate({ ...minimal, region: '' }).errors.region, '거주지역을 선택해 주세요.');
   const invalid = { ...minimal, personal_income: 0, household_income: 100, employment_type: 'regular', policy_history: 'yes' };
   assert.deepEqual(Object.keys(repository.validate(invalid).errors).sort(), ['employment_type', 'household_income', 'personal_income', 'policy_history']);
   await assert.rejects(repository.save(invalid), e => e.code === 'INVALID_PROFILE');
