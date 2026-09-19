@@ -41,7 +41,7 @@ function profile() {
   return '<div id="profile-content"></div>';
 }
 function questions() {
-  if (apiBase !== null && liveJudgement) return '<div id="live-questions"></div>';
+  if (apiBase !== null) return '<div id="live-questions"></div>';
   return heading('판정에 필요한 추가 질문', 'UNKNOWN 상태에서는 확인되지 않은 답변을 임의로 판정하지 않습니다.') + data.questions.map(q => `<section class="card"><p class="muted">${escape(policy(q.policy_id).name)}</p><h2>${escape(q.text)}</h2><fieldset disabled><legend>답변 예시 · M3 연결 예정</legend><select aria-label="참여 이력"><option>답변을 선택하세요</option><option>예</option><option>아니오</option><option>잘 모르겠음</option></select></fieldset><p>답변 제출 → 재판정 중 → 갱신된 결과 순서로 연결할 예정입니다.</p></section>`).join('');
 }
 function combinations() {
@@ -63,7 +63,7 @@ function renderPage(loadedData) {
   const pages = { results, profile, questions, combinations, schedule, policies: () => detail(id), analysis };
   main.innerHTML = (Object.hasOwn(pages, page) ? pages[page] : missing)();
   if (page === 'profile') mountProfile(main.querySelector('#profile-content'));
-  if (page === 'questions' && liveJudgement && apiBase !== null) {
+  if (page === 'questions' && apiBase !== null) {
     questionMount?.cancel();
     questionMount = mountQuestions(main.querySelector('#live-questions'), {
       onRejudge: async (profile, sessionId, signal) => {

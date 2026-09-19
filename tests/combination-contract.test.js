@@ -16,6 +16,7 @@ test('rejects malformed combination totals, ranks, members and source URLs', () 
     data => { data.eligible_count = -1; },
     data => { data.scenarios[0].kind = 'other'; },
     data => { data.scenarios[0].combinations[0].rank = 0; },
+    data => { data.scenarios[0].combinations[0].total_krw = 1; },
     data => { data.scenarios[0].combinations[0].members = []; },
     data => { data.scenarios[0].combinations[0].excluded[0].source_url = 'javascript:alert(1)'; },
     data => { data.scenarios[0].combinations[0].excluded[0].confidence = 'NEEDS_REVIEW'; },

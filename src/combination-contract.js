@@ -30,12 +30,14 @@ export function validateCombinationResponse(data) {
     const path = `scenarios[${index}]`;
     requireValue(object(scenario) && ['conservative', 'maximal'].includes(scenario.kind), `${path}.kind`);
     requireValue(text(scenario.label) && text(scenario.description), path);
+    requireValue(scenario.approximate === undefined || typeof scenario.approximate === 'boolean', `${path}.approximate`);
     requireValue(Array.isArray(scenario.combinations), `${path}.combinations`);
     scenario.combinations.forEach((combination, combinationIndex) => {
       const combinationPath = `${path}.combinations[${combinationIndex}]`;
       requireValue(object(combination) && count(combination.rank) && combination.rank > 0 && count(combination.total_krw), combinationPath);
       requireValue(Array.isArray(combination.members) && combination.members.length > 0, `${combinationPath}.members`);
       combination.members.forEach((member, memberIndex) => validateMember(member, `${combinationPath}.members[${memberIndex}]`));
+      requireValue(combination.total_krw === combination.members.reduce((total, member) => total + member.estimated_total_krw, 0), `${combinationPath}.total_krw`);
       requireValue(Array.isArray(combination.excluded), `${combinationPath}.excluded`);
       combination.excluded.forEach((item, itemIndex) => validateExcluded(item, `${combinationPath}.excluded[${itemIndex}]`));
       requireValue(combination.total_is_estimated === undefined || typeof combination.total_is_estimated === 'boolean', `${combinationPath}.total_is_estimated`);
