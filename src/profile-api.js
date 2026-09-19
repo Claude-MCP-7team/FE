@@ -24,11 +24,11 @@ export function createProfileApi({ baseUrl = globalThis.__YPC_API_BASE__ ?? '', 
     if (session) headers.set('X-Session-Id', session);
     let response;
     try { response = await fetchImpl(url(path), { ...options, headers }); }
-    catch (error) { throw new ApiError('서버에 연결하지 못했어요.', { detail: error }); }
+    catch (error) { throw new ApiError('서버에 연결하지 못했어요.', { cause: error }); }
     let body = null;
     let text;
     try { text = await response.text(); }
-    catch (error) { throw new ApiError('서버 응답을 읽지 못했어요. 다시 시도해 주세요.', { detail: error }); }
+    catch (error) { throw new ApiError('서버 응답을 읽지 못했어요. 다시 시도해 주세요.', { cause: error }); }
     if (text) {
       try { body = JSON.parse(text); }
       catch {

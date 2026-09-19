@@ -31,7 +31,7 @@ export function createJudgementApi({ baseUrl = globalThis.__YPC_API_BASE__ ?? ''
           response = await fetchImpl(`${String(baseUrl).replace(/\/$/, '')}/v1/judge?include=all`, { method: 'POST', headers, body, signal: controller.signal, cache: 'no-store' });
           responseText = await response.text();
         } catch (error) {
-          throw new ApiError('판정 서버에 연결하지 못했어요.', { detail: error });
+          throw new ApiError('판정 서버에 연결하지 못했어요.', { cause: error });
         }
         let data;
         try { data = JSON.parse(responseText); }

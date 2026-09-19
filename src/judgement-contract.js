@@ -32,7 +32,6 @@ export function validateJudgementResponse(data) {
   for (const key of ['session_id', 'snapshot_version', 'disclaimer']) requireValue(text(data[key]), key);
   requireValue(object(data.summary), 'summary');
   for (const key of Object.values(verdictKeys)) requireValue(count(data.summary[key]), `summary.${key}`);
-  requireValue(data.summary.future_eligible === undefined || count(data.summary.future_eligible), 'summary.future_eligible');
   requireValue(data.latency_ms === undefined || count(data.latency_ms), 'latency_ms');
   requireValue(Array.isArray(data.results), 'results');
   const policyIds = new Set();
@@ -45,9 +44,6 @@ export function validateJudgementResponse(data) {
     requireValue(typeof result.verdict === 'string' && Object.hasOwn(verdictKeys, result.verdict), `${path}.verdict`);
     totals[verdictKeys[result.verdict]]++;
     requireValue(confidences.includes(result.confidence), `${path}.confidence`);
-    requireValue(result.future_eligible_from === undefined || result.future_eligible_from === null || calendarDate(result.future_eligible_from), `${path}.future_eligible_from`);
-    requireValue(result.needs_review_fields === undefined || (Array.isArray(result.needs_review_fields) && result.needs_review_fields.every(text)), `${path}.needs_review_fields`);
-    requireValue(!(result.future_eligible_from != null && result.verdict !== 'INELIGIBLE'), `${path}.future_eligible_from`);
     for (const key of ['explanation', 'dept_name', 'dept_tel']) nullableText(result[key], `${path}.${key}`);
     sourceUrl(result.origin_url, `${path}.origin_url`);
     requireValue(result.disclaimer_required === undefined || typeof result.disclaimer_required === 'boolean', `${path}.disclaimer_required`);
@@ -78,7 +74,6 @@ export function validateJudgementResponse(data) {
     }
   });
   for (const key of Object.values(verdictKeys)) requireValue(totals[key] === data.summary[key], `summary.${key}`);
-  if (data.summary.future_eligible !== undefined) requireValue(data.summary.future_eligible === data.results.filter(result => result.future_eligible_from != null).length, 'summary.future_eligible');
   return data;
 }
 
