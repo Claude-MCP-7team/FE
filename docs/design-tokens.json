@@ -1,0 +1,77 @@
+{
+  "global": {
+    "color": {
+      "brand": {
+        "green":       { "value": "#135f3c", "type": "color", "description": "주조색. 주 버튼 배경, 링크, 인용 좌측선" }
+      },
+      "text": {
+        "ink":         { "value": "#17221c", "type": "color", "description": "본문" },
+        "muted":       { "value": "#59675f", "type": "color", "description": "보조 설명, 기관명" },
+        "chip":        { "value": "#4f5c54", "type": "color", "description": "신뢰도 칩, 인라인 안내" },
+        "on-brand":    { "value": "#ffffff", "type": "color", "description": "녹색 버튼 위 글자" }
+      },
+      "surface": {
+        "page":        { "value": "#f5f7f3", "type": "color", "description": "페이지 배경, 인용 블록 배경" },
+        "card":        { "value": "#ffffff", "type": "color", "description": "카드, 헤더" }
+      },
+      "border": {
+        "line":        { "value": "#dfe5df", "type": "color", "description": "장식용. 카드 테두리, 구분선" },
+        "strong":      { "value": "#7d8f84", "type": "color", "description": "기능용. 입력, 버튼, 칩 테두리. 흰 배경 대비 3.42" },
+        "focus":       { "value": "#41667a", "type": "color", "description": "포커스 링 3px" }
+      },
+      "status": {
+        "pass-ink":         { "value": "#135f3c", "type": "color", "description": "신청 가능 ✓ · 대비 6.36" },
+        "pass-bg":          { "value": "#dceee2", "type": "color" },
+        "fail-ink":         { "value": "#993d36", "type": "color", "description": "조건 미충족 × · 대비 5.81" },
+        "fail-bg":          { "value": "#fae9e6", "type": "color" },
+        "unknown-ink":      { "value": "#775013", "type": "color", "description": "추가 확인 ? · 대비 6.50" },
+        "unknown-bg":       { "value": "#fff3dc", "type": "color" },
+        "future-pass-ink":  { "value": "#325975", "type": "color", "description": "향후 가능 ↗ · 대비 6.31" },
+        "future-pass-bg":   { "value": "#e5edf8", "type": "color" }
+      },
+      "plan": {
+        "alert-ink":   { "value": "#8a3d10", "type": "color", "description": "계획 URGENT / INFEASIBLE · 대비 5.20" },
+        "alert-bg":    { "value": "#fbcd9e", "type": "color" },
+        "accent":      { "value": "#c2521a", "type": "color", "description": "급한 카드 좌측 4px 선 · 흰 배경 대비 4.65" }
+      },
+      "notice": {
+        "ink":         { "value": "#705017", "type": "color", "description": "상단 면책 배너 · 대비 6.71" },
+        "bg":          { "value": "#fff3dc", "type": "color" }
+      }
+    },
+
+    "radius": {
+      "card":          { "value": "20", "type": "borderRadius" },
+      "button":        { "value": "12", "type": "borderRadius" },
+      "notice":        { "value": "12", "type": "borderRadius" },
+      "conflict":      { "value": "12", "type": "borderRadius" },
+      "input":         { "value": "8",  "type": "borderRadius" },
+      "policy-ref":    { "value": "8",  "type": "borderRadius" },
+      "plan-tag":      { "value": "6",  "type": "borderRadius", "description": "계획 상태 태그. 배지와 형태로 구분된다" },
+      "badge":         { "value": "24", "type": "borderRadius", "description": "판정 배지와 신뢰도 칩 모두 알약" }
+    },
+
+    "size": {
+      "touch-target":  { "value": "44", "type": "sizing", "description": "버튼·입력 최소 높이" },
+      "content-max":   { "value": "1120", "type": "sizing", "description": "본문 최대 너비" },
+      "breakpoint":    { "value": "700", "type": "sizing", "description": "카드 2열 → 1열, 요약 4열 → 2열" },
+      "card-padding":  { "value": "24", "type": "spacing", "description": "모바일 20" },
+      "grid-gap":      { "value": "16", "type": "spacing", "description": "요약 카드는 14" }
+    },
+
+    "font": {
+      "family":        { "value": "system-ui, 'Malgun Gothic', sans-serif", "type": "fontFamilies" },
+      "line-height":   { "value": "1.6", "type": "lineHeights", "description": "h1은 1.25" },
+      "weight-bold":   { "value": "700", "type": "fontWeights", "description": "배지, 강조" },
+      "weight-black":  { "value": "800", "type": "fontWeights", "description": "eyebrow, 금액, 브랜드" },
+      "weight-chip":   { "value": "600", "type": "fontWeights", "description": "신뢰도 칩" },
+      "size-h1-min":   { "value": "28", "type": "fontSizes", "description": "clamp(28, 4vw, 42) · 자간 -1.5" },
+      "size-h1-max":   { "value": "42", "type": "fontSizes" },
+      "size-benefit":  { "value": "24", "type": "fontSizes", "description": "금액" },
+      "size-h2":       { "value": "20", "type": "fontSizes" },
+      "size-h3":       { "value": "18", "type": "fontSizes" },
+      "size-body":     { "value": "16", "type": "fontSizes" },
+      "size-small":    { "value": "13", "type": "fontSizes", "description": "배지, 칩, eyebrow, 각주" }
+    }
+  }
+}

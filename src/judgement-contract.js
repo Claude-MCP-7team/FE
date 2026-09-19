@@ -32,10 +32,13 @@ export function validateJudgementResponse(data) {
   for (const key of ['session_id', 'snapshot_version', 'disclaimer']) requireValue(text(data[key]), key);
   requireValue(object(data.summary), 'summary');
   for (const key of Object.values(verdictKeys)) requireValue(count(data.summary[key]), `summary.${key}`);
+  requireValue(count(data.summary.future_eligible ?? 0), 'summary.future_eligible');
+  requireValue((data.summary.future_eligible ?? 0) <= data.summary.ineligible, 'summary.future_eligible');
   requireValue(data.latency_ms === undefined || count(data.latency_ms), 'latency_ms');
   requireValue(Array.isArray(data.results), 'results');
   const policyIds = new Set();
   const totals = { eligible: 0, ineligible: 0, needs_info: 0 };
+  let futureEligible = 0;
   data.results.forEach((result, index) => {
     const path = `results[${index}]`;
     requireValue(object(result), path);
@@ -44,9 +47,18 @@ export function validateJudgementResponse(data) {
     requireValue(typeof result.verdict === 'string' && Object.hasOwn(verdictKeys, result.verdict), `${path}.verdict`);
     totals[verdictKeys[result.verdict]]++;
     requireValue(confidences.includes(result.confidence), `${path}.confidence`);
-    for (const key of ['explanation', 'dept_name', 'dept_tel']) nullableText(result[key], `${path}.${key}`);
+    for (const key of ['title', 'explanation', 'dept_name', 'dept_tel']) nullableText(result[key], `${path}.${key}`);
     sourceUrl(result.origin_url, `${path}.origin_url`);
     requireValue(result.disclaimer_required === undefined || typeof result.disclaimer_required === 'boolean', `${path}.disclaimer_required`);
+    const futureFrom = result.future_eligible_from;
+    requireValue(futureFrom === undefined || futureFrom === null || calendarDate(futureFrom), `${path}.future_eligible_from`);
+    // BE only dates a policy that fails today and whose every unmet rule clears with time,
+    // so any other verdict carrying a date would make "wait and you qualify" a false promise.
+    if (futureFrom != null) {
+      requireValue(result.verdict === 'INELIGIBLE', `${path}.future_eligible_from`);
+      futureEligible++;
+    }
+    requireValue(result.needs_review_fields === undefined || (Array.isArray(result.needs_review_fields) && result.needs_review_fields.every(text)), `${path}.needs_review_fields`);
     if (result.confidence !== 'CONFIRMED') {
       for (const key of ['dept_name', 'dept_tel', 'origin_url']) requireValue(text(result[key]), `${path}.${key}`);
     }
@@ -74,15 +86,20 @@ export function validateJudgementResponse(data) {
     }
   });
   for (const key of Object.values(verdictKeys)) requireValue(totals[key] === data.summary[key], `summary.${key}`);
+  requireValue(futureEligible === (data.summary.future_eligible ?? 0), 'summary.future_eligible');
   return data;
 }
 
-// Array membership and the BE-supplied date determine only the condition display.
-// Policy verdict/confidence remain unchanged; no aggregate future date is invented.
+// Array membership and the BE-supplied date determine only the display.
+// Policy verdict/confidence remain unchanged; no aggregate future date is invented --
+// `status` reads BE's own future_eligible_from rather than deriving a date from conditions.
 export function toJudgementView(data) {
   const view = structuredClone(validateJudgementResponse(data));
   view.results = view.results.map(result => ({
     ...result,
+    status: result.verdict === 'ELIGIBLE' ? 'PASS'
+      : result.verdict === 'NEEDS_INFO' ? 'UNKNOWN'
+      : result.future_eligible_from != null ? 'FUTURE_PASS' : 'FAIL',
     conditions: ['matched', 'unmatched', 'unknown'].flatMap(group => result[group].map(rule => ({
       ...rule,
       status: group === 'matched' ? 'PASS' : group === 'unknown' ? 'UNKNOWN' : rule.satisfiable_from != null ? 'FUTURE_PASS' : 'FAIL',
