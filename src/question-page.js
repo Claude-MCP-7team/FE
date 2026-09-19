@@ -15,7 +15,7 @@ function renderQueue(queue) {
   return `<form id="question-form"><p class="muted">답변하면 판정이 끝나는 정책 수만 표시합니다. 모르는 질문은 비워둘 수 있어요.</p>${queue.questions.map(question => `<section class="card question-card"><label for="question-${escape(question.field)}"><h2>${escape(question.text)}</h2><small>${question.resolves}개 정책의 판정이 완료될 수 있어요.</small></label><div><label for="question-${escape(question.field)}">답변</label>${control(question).replace('<input ', `<input id="question-${escape(question.field)}" `).replace('<select ', `<select id="question-${escape(question.field)}" `)}</div><blockquote>${escape(question.source_quote)}</blockquote></section>`).join('')}<button class="primary" type="submit">답변 저장하고 재판정</button><p id="question-status" role="status" aria-live="polite"></p></form>`;
 }
 
-export function mountQuestions(container, { onRejudge, profileApi = null, questionApi = null } = {}) {
+export function mountQuestions(container, { onRejudge, profileApi = null, questionApi = null, onRemount = null } = {}) {
   container.innerHTML = '<div class="state" role="status">판정에 필요한 질문을 불러오는 중이에요…</div>';
   if (apiBase === null) { container.innerHTML = '<section class="card"><h1>실제 질문은 서버 연결 후 제공됩니다.</h1><p>현재는 Mock 결과 화면을 사용하고 있어요.</p></section>'; return { cancel() {} }; }
   const profiles = profileApi ?? createProfileApi({ baseUrl: apiBase });
@@ -49,7 +49,8 @@ export function mountQuestions(container, { onRejudge, profileApi = null, questi
       if (!controller.signal.aborted) {
         container.innerHTML = `<section class="card" role="alert"><h1>질문을 불러오지 못했어요.</h1><p>${escape(error.message)}</p><button data-question-retry>다시 시도</button></section>`;
         container.querySelector('[data-question-retry]')?.addEventListener('click', () => {
-          mountQuestions(container, { onRejudge, profileApi, questionApi });
+          const nextMount = mountQuestions(container, { onRejudge, profileApi, questionApi, onRemount });
+          onRemount?.(nextMount);
         });
       }
     }

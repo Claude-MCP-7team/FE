@@ -68,6 +68,7 @@ function renderPage(loadedData) {
         liveJudgement = toJudgementView(result);
         location.hash = '#/results';
       },
+      onRemount: nextMount => { questionMount = nextMount; },
     });
   }
   updatePageMeta();
