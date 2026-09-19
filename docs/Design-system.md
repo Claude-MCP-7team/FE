@@ -60,6 +60,9 @@
 
 ## 2. 색 토큰
 
+> 피그마용 토큰 파일: [`design-tokens.json`](design-tokens.json). Tokens Studio 형식이며 아래 값과 같은 내용이다.
+> **이 문서와 JSON이 어긋나면 이 문서가 기준이다.** JSON은 피그마에 넣기 위한 사본이다.
+
 ### 브랜드 · 중성
 
 | 토큰 | 값 | 용도 | 현재 CSS |
