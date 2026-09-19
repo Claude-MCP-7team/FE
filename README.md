@@ -30,6 +30,7 @@ M0 앱의 http://127.0.0.1:5173/#/profile 도 같은 입력 폼을 사용합니�
 - [화면·API 계약 초안](docs/Frontend-contract.md)
 - [판정 상태·근거 표현 규격](docs/Design-states.md)
 - [디자인 시스템](docs/Design-system.md)
+- [서류·일정 화면 스펙](docs/Design-schedule.md)
 - [진행 기록과 남은 작업](docs/Frontend-progress.md)
 - [판정 API 클라이언트와 검증 범위](docs/Judgement-api.md) · 분석·결과 화면 연결
 - [역질문 API와 재판정 흐름](docs/Questions-api.md) · 질문 화면 연결

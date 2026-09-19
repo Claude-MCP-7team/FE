@@ -332,7 +332,7 @@ PRD 2.1의 유지 항목이다. 조건 미충족 화면은 **거절 통보로 �
 | 정책 상세 | `#/policies/:id` | **연결됨.** 조건 4상태 배지 + 근거 blockquote + 담당부서 연락처 |
 | 역질문 | `#/questions` | **연결됨.** 필드별 질문 병합, boolean/number/choice, 답변 후 재판정 |
 | 조합 | `#/combinations` | **연결됨.** `conservative/maximal` 조합, 제외 정책의 충돌 근거. 인용 분리·신뢰도 칩 적용 |
-| 서류·일정 | `#/schedule` | 미연결. `POST /v1/plan` 대기 |
+| 서류·일정 | `#/schedule` | 미연결. 스펙 작성 완료 → [Design-schedule.md](Design-schedule.md) |
 
 `YPC_API_BASE`가 설정된 서버 모드에서만 실제 요청을 보내고, 없으면 기존 Mock으로 동작한다.
 
@@ -353,4 +353,5 @@ PRD 2.1의 유지 항목이다. 조건 미충족 화면은 **거절 통보로 �
 
 ### 남은 시안 작업
 
-서류·일정 화면은 아직 구현 전이므로 시안이 먼저 필요하다. 나머지 화면은 구현이 앞서 있으므로 **시안보다 위 S 항목 확정과 스타일 보정이 우선**이다.
+서류·일정 화면의 스펙은 [Design-schedule.md](Design-schedule.md)에 있다. 구현은 FE가 한다.
+나머지 화면은 구현이 앞서 있으므로 시안을 뒤늦게 그리지 않고 QA와 규격 확정으로 대응한다.
