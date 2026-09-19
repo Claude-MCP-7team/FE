@@ -10,7 +10,7 @@ for (const prototype of [false, true]) {
     await once(server, 'listening');
     t.after(() => new Promise(resolve => { server.close(resolve); server.closeAllConnections(); }));
     const base = `http://127.0.0.1:${server.address().port}`;
-    const allowed = [...(prototype ? ['/', '/index.html'] : ['/', '/index.html', '/src/app.js', '/src/contracts.js', '/src/styles.css', '/src/page-loader.js', '/mocks/scenario.json']), '/profile.html', '/src/profile.js', '/src/profile-form.js', '/src/profile-page.js', '/src/profile.css', '/src/dom.js', '/src/profile-api.js', '/src/profile-repository.js', '/src/runtime-config.js', '/src/judgement-api.js', '/src/judgement-contract.js', '/src/judgement-page.js'];
+    const allowed = [...(prototype ? ['/', '/index.html'] : ['/', '/index.html', '/src/app.js', '/src/contracts.js', '/src/styles.css', '/src/page-loader.js', '/mocks/scenario.json']), '/profile.html', '/src/tokens.css', '/src/confidence.js', '/src/profile.js', '/src/profile-form.js', '/src/profile-page.js', '/src/profile.css', '/src/dom.js', '/src/profile-api.js', '/src/profile-repository.js', '/src/runtime-config.js', '/src/judgement-api.js', '/src/judgement-contract.js', '/src/judgement-page.js'];
     for (const path of allowed) {
       const response = await fetch(base + path);
       assert.equal(response.status, 200, path);
