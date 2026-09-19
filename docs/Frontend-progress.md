@@ -1,5 +1,15 @@
 # Frontend 진행 기록
 
+## 2026-09-19 · S-1 · S-2 확정 · FUTURE_PASS 연결
+
+- **완료:** BE의 `future_eligible_from`과 `summary.future_eligible`을 읽어 네 번째 판정 분류를 연결했다. 매핑은 `ELIGIBLE`→PASS, `NEEDS_INFO`→UNKNOWN, `INELIGIBLE`+날짜→FUTURE_PASS, `INELIGIBLE`→FAIL이다. `confidence`는 매핑에 쓰지 않는다. 조건 수준 규칙과 같은 모양이라 두 층위가 같은 어법으로 읽힌다.
+- **완료:** 집계 칸을 4칸으로 늘리면서 `future_eligible`을 `ineligible`에서 차감했다. 별도 분류가 아니라 부분집합이므로 그대로 더하면 합이 전체를 넘는다. 카드 배지와 집계 칸이 1:1로 맞는다.
+- **완료:** 정책 배지 문구·기호를 `contracts.js`의 `statuses` 한 곳에서 가져온다. 실판정 배지에 기호가 빠져 있던 것도 함께 맞춰졌다. 날짜는 "예상 충족일"로 쓰고 접수 가능일로 표현하지 않는다.
+- **검증:** `npm test` 94개, `npm run check` 통과. 검증기는 날짜가 `INELIGIBLE`이 아닌 판정에 붙거나, 달력에 없는 날이거나, 요약 건수와 어긋나거나, 부분집합이 `ineligible`을 넘으면 거부한다. 조건 하나가 FUTURE_PASS여도 정책이 승격되지 않는지, 네 칸의 합이 전체와 같은지 확인하는 테스트를 추가했다.
+- **주의:** 기존 테스트의 `assert.equal('status' in view.results[1], false)`는 "FE가 정책 수준 status를 만들지 않는다"를 고정한 것이었다. 이제 BE 신호를 읽으므로 의미가 바뀌어, 조건에서 파생하지 않는다는 것을 확인하는 어서션으로 교체했다.
+- **다음:** 실판정 Dashboard의 상태 필터, `needs_review_fields` 표시(필드명 사용자 문구 매핑 필요).
+- **막힌 점:** 브라우저 확인 미완료. BE의 `title` 필드 대기.
+
 ## 2026-09-19 · 정책 제목 처리와 BE 스키마 확인
 
 - **완료:** 카드·상세 제목의 `policy_id` 원문 노출을 고쳤다. `JudgementResult.title`이 오면 제목으로 쓰고(검증기가 문자열만 허용), 없으면 `code.policy-ref`로 식별자임을 드러낸다. ID를 제목 자리에 그대로 두면 정책 이름으로 읽히므로, 이름이 없다는 사실을 숨기지 않는 쪽을 택했다.
