@@ -356,9 +356,9 @@ v3.0 원칙: **v2.0의 짧고 현실적인 일정 + v1.0의 명확한 기술 책
 
 #### 9/18 ~ 9/19
 
-- [x]  AIQuestion 조회 API
+- [ ]  AIQuestion 조회 API
 - [ ]  UserAnswer 저장 API
-- [x]  답변을 UserProfile/Context에 반영
+- [ ]  답변을 UserProfile/Context에 반영
 
 #### 9/20
 
@@ -371,7 +371,7 @@ v3.0 원칙: **v2.0의 짧고 현실적인 일정 + v1.0의 명확한 기술 책
 - [ ]  Conflict Matrix 생성
 - [ ]  동시에 받을 수 없는 조합 제거
 - [ ]  P0용 단순 최대혜택 조합 계산
-- [x]  Combination API
+- [ ]  Combination API
 
 ### 💻 Frontend
 
