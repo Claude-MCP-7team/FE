@@ -27,6 +27,8 @@ M0 앱의 http://127.0.0.1:5173/#/profile 도 같은 입력 폼을 사용합니�
 - `mocks/scenario.json`: 네 가지 판정 상태를 포함한 공유 JSON
 - `prototype/index.html`: 기존 정적 초안 원본
 - [화면·API 계약 초안](docs/Frontend-contract.md)
+- [판정 상태·근거 표현 규격](docs/Design-states.md)
+- [디자인 시스템](docs/Design-system.md)
 - [진행 기록과 남은 작업](docs/Frontend-progress.md)
 
 모든 정책과 판정은 가상 예시입니다. 서버 저장 및 실제 AI/API 연결은 아직 없습니다. M0 계약 합의 후 M1부터 순서대로 진행합니다.
