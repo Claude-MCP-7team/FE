@@ -1,0 +1,41 @@
+{
+  "session_id": "anonymous",
+  "snapshot_version": "synthetic-contract-test-v1",
+  "summary": { "eligible": 1, "ineligible": 1, "needs_info": 1 },
+  "latency_ms": 0,
+  "disclaimer": "테스트 전용 가상 판정입니다. 최종 자격은 담당부서 확인이 필요합니다.",
+  "results": [
+    {
+      "policy_id": "TEST-ELIGIBLE",
+      "verdict": "ELIGIBLE",
+      "confidence": "CONFIRMED",
+      "matched": [{ "rule_id": "AGE", "field": "age", "user_value": 25, "source_quote": "만 19세 이상", "source_url": null }],
+      "unmatched": [], "unknown": [], "explanation": null,
+      "origin_url": "https://example.org/eligible", "dept_name": null, "dept_tel": null,
+      "disclaimer_required": true
+    },
+    {
+      "policy_id": "TEST-INELIGIBLE",
+      "verdict": "INELIGIBLE",
+      "confidence": "ESTIMATED",
+      "matched": [],
+      "unmatched": [
+        { "rule_id": "RES", "field": "residence_months_continuous", "user_value": 2, "required": 6, "unit": "months", "source_quote": "6개월 이상 연속 거주", "source_url": "https://example.org/residence", "time_satisfiable": true, "satisfiable_from": "2027-01-01", "permanently_unsatisfiable": false },
+        { "rule_id": "AGE", "field": "age", "user_value": 40, "required": [19, 34], "unit": "years", "source_quote": "만 19세부터 34세까지", "source_url": null, "time_satisfiable": true, "satisfiable_from": null, "permanently_unsatisfiable": true }
+      ],
+      "unknown": [], "explanation": "조건을 충족하지 않습니다.",
+      "origin_url": "https://example.org/ineligible", "dept_name": "테스트 부서", "dept_tel": "000-0000-0000",
+      "disclaimer_required": true
+    },
+    {
+      "policy_id": "TEST-UNKNOWN",
+      "verdict": "NEEDS_INFO",
+      "confidence": "NEEDS_REVIEW",
+      "matched": [], "unmatched": [],
+      "unknown": [{ "rule_id": "INCOME", "field": "household_income_ratio_median", "source_quote": "기준 중위소득 150% 이하", "source_url": null, "question_template": null }],
+      "explanation": null,
+      "origin_url": "https://example.org/unknown", "dept_name": "테스트 부서", "dept_tel": "000-0000-0000",
+      "disclaimer_required": true
+    }
+  ]
+}

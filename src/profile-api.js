@@ -1,3 +1,5 @@
+import { serverRegions } from './profile.js';
+
 const sessionKey = 'ypc.session-id.v1';
 const uuid = /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 
@@ -23,8 +25,15 @@ export function createProfileApi({ baseUrl = globalThis.__YPC_API_BASE__ ?? '', 
     try { response = await fetchImpl(url(path), { ...options, headers }); }
     catch (error) { throw new ApiError('서버에 연결하지 못했어요.', { detail: error }); }
     let body = null;
-    const text = await response.text();
-    if (text) { try { body = JSON.parse(text); } catch { body = null; } }
+    let text;
+    try { text = await response.text(); }
+    catch (error) { throw new ApiError('서버 응답을 읽지 못했어요. 다시 시도해 주세요.', { detail: error }); }
+    if (text) {
+      try { body = JSON.parse(text); }
+      catch {
+        if (response.ok) throw new ApiError('서버 응답 형식이 올바르지 않아요.', { code: 'INVALID_RESPONSE' });
+      }
+    }
     if (!response.ok) {
       const detail = body?.detail ?? body?.error?.message ?? null;
       throw new ApiError(detail || `요청을 처리하지 못했어요. (${response.status})`, { status: response.status, code: body?.error?.code ?? 'HTTP_ERROR', detail });
@@ -43,32 +52,42 @@ export function createProfileApi({ baseUrl = globalThis.__YPC_API_BASE__ ?? '', 
     async get() {
       const id = readSession();
       if (!id) return null;
-      try { const result = await request(`/v1/sessions/${encodeURIComponent(id)}`); return result?.profile ?? null; }
+      try {
+        const result = await request(`/v1/sessions/${encodeURIComponent(id)}`);
+        if (!result || !Object.hasOwn(result, 'profile') || (result.profile !== null && (typeof result.profile !== 'object' || Array.isArray(result.profile)))) {
+          throw new ApiError('서버가 올바른 프로필을 반환하지 않았어요.', { code: 'INVALID_RESPONSE' });
+        }
+        return result.profile;
+      }
       catch (error) { if (error instanceof ApiError && error.status === 404) clearSession(); throw error; }
     },
     async put(profile) {
       const id = readSession();
       if (!id) throw new ApiError('저장할 세션이 없습니다.', { code: 'NO_SESSION' });
-      await request(`/v1/sessions/${encodeURIComponent(id)}`, { method: 'PUT', body: JSON.stringify(profile) });
+      try { await request(`/v1/sessions/${encodeURIComponent(id)}`, { method: 'PUT', body: JSON.stringify(profile) }); }
+      catch (error) { if (error instanceof ApiError && error.status === 404) clearSession(); throw error; }
       return profile;
     },
     async upsert(profile) { return readSession() ? this.put(profile) : (await this.create(profile), profile); },
     async remove() {
       const id = readSession();
       if (!id) return false;
-      try { await request(`/v1/sessions/${encodeURIComponent(id)}`, { method: 'DELETE' }); return true; }
-      finally { clearSession(); }
+      try { await request(`/v1/sessions/${encodeURIComponent(id)}`, { method: 'DELETE' }); }
+      catch (error) {
+        if (!(error instanceof ApiError) || error.status !== 404) throw error;
+      }
+      clearSession();
+      return true;
     },
   };
 }
 
-const regionCodes = { 'gyeonggi-yongin': '41465', 'gyeonggi-other': '41', other: '00' };
+// Non-region option IDs must match serverChoices in profile.js.
 const enumMap = {
-  education: { enrolled: 'university_enrolled', graduated: 'university_graduated' },
-  employment_status: { unemployed: 'job_seeking', employed: 'employed', 'self-employed': 'founder' },
-  marital_status: { single: 'single', married: 'married' },
+  education: { enrolled: 'university_enrolled', graduated: 'university_graduated', middle_or_below: 'middle_or_below', high_school_enrolled: 'high_school_enrolled', high_school_graduated: 'high_school_graduated', graduate_school: 'graduate_school' },
+  employment_status: { unemployed: 'job_seeking', employed: 'employed', 'self-employed': 'founder', student: 'student', neet: 'neet' },
+  marital_status: { single: 'single', married: 'married', divorced: 'divorced', widowed: 'widowed' },
 };
-const reverseRegionCodes = Object.fromEntries(Object.entries(regionCodes).map(([key, value]) => [value, key]));
 const reverseEnumMap = {
   education: { university_enrolled: 'enrolled', university_graduated: 'graduated' },
   employment_status: { job_seeking: 'unemployed', employed: 'employed', founder: 'self-employed' },
@@ -86,10 +105,10 @@ export function toBackendProfile(draft, { receivedPolicyIds = [], similarProgram
     return mapped;
   };
   const region = draft?.region;
-  if (region && !regionCodes[region]) throw new ApiError(`Unsupported region value: ${region}`, { code: 'PROFILE_MAPPING_REQUIRED' });
+  if (region && !Object.hasOwn(serverRegions, region)) throw new ApiError('정확한 거주지역을 목록에서 선택해 주세요.', { code: 'PROFILE_MAPPING_REQUIRED' });
   const core = {
     birth_date: draft.birth_date,
-    region_code: regionCodes[region] ?? '',
+    region_code: region || '',
     residence_start_date: value('residence_start_date'),
     education: mapRequired('education', draft.education),
     employment_status: mapRequired('employment_status', draft.employment_status),
@@ -110,11 +129,11 @@ export function fromBackendProfile(profile = {}) {
   const core = profile.core ?? {};
   return {
     birth_date: core.birth_date ?? '',
-    region: reverseRegionCodes[core.region_code] ?? core.region_code ?? '',
+    region: core.region_code ?? '',
     residence_start_date: core.residence_start_date ?? '',
-    education: reverseEnumMap.education[core.education] ?? '',
-    employment_status: reverseEnumMap.employment_status[core.employment_status] ?? '',
-    marital_status: reverseEnumMap.marital_status[core.marital_status] ?? '',
+    education: reverseEnumMap.education[core.education] ?? core.education ?? '',
+    employment_status: reverseEnumMap.employment_status[core.employment_status] ?? core.employment_status ?? '',
+    marital_status: reverseEnumMap.marital_status[core.marital_status] ?? core.marital_status ?? '',
     household_size: core.household_size ?? '',
     personal_income: null,
     household_income: null,
