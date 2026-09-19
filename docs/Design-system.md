@@ -248,8 +248,8 @@
 
 | 토큰 | 값 | 용도 |
 | --- | --- | --- |
-| `plan/alert-ink` | `#8a3d10` | `URGENT`·`INFEASIBLE` 태그 글자 · 대비 5.09 |
-| `plan/alert-bg` | `#fcc9a4` | 같은 태그 배경 |
+| `plan/alert-ink` | `#8a3d10` | `URGENT`·`INFEASIBLE` 태그 글자 · 대비 5.20 |
+| `plan/alert-bg` | `#fbcd9e` | 같은 태그 배경 |
 | `plan/alert-accent` | `#c2521a` | 급한 카드 좌측 4px 선 · 대비 4.65 |
 
 계획 상태 6개 중 **급한 둘에만** 색을 준다. 나머지는 중성 칩과 같은 스타일이다.
