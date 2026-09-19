@@ -1,4 +1,5 @@
 import { escape } from './dom.js';
+import { chip } from './confidence.js';
 
 const verdicts = {
   ELIGIBLE: ['신청 가능', 'PASS'],
@@ -6,15 +7,10 @@ const verdicts = {
   NEEDS_INFO: ['추가 확인', 'UNKNOWN'],
 };
 const conditionLabels = { PASS: '충족', FAIL: '미충족', UNKNOWN: '확인 필요', FUTURE_PASS: '향후 가능' };
-// Confidence is a separate axis from the verdict, so it must not borrow the status palette.
-// A neutral outlined chip keeps the four status colours meaning only one thing.
-const confidenceLabels = { ESTIMATED: '추정 포함', NEEDS_REVIEW: '담당부서 확인' };
 const confidenceNotes = {
   ESTIMATED: '일부 조건은 추정입니다. 판정 근거를 확인해 주세요.',
   NEEDS_REVIEW: '공고문 근거에 확인이 필요합니다. 담당부서로 문의해 주세요.',
 };
-const chip = confidence => confidence === 'CONFIRMED' ? ''
-  : `<span class="chip">${escape(confidenceLabels[confidence] ?? confidence)}</span>`;
 const badge = status => `<span class="badge ${status}">${escape(conditionLabels[status] ?? status)}</span>`;
 
 export function renderJudgementDashboard(view, { onDetail = id => `#/policies/${encodeURIComponent(id)}` } = {}) {
