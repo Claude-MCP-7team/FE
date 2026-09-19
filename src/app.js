@@ -7,11 +7,12 @@ import { createJudgementApi } from './judgement-api.js';
 import { toJudgementView } from './judgement-contract.js';
 import { apiBase } from './runtime-config.js';
 import { renderJudgementDashboard, renderJudgementDetail } from './judgement-page.js';
+import { createJudgementRunner } from './judgement-runner.js';
 const main = document.querySelector('main');
 let data;
 let filter = 'all';
 let liveJudgement = null;
-let judgementRequest = null;
+let judgementRunner;
 const badge = status => `<span class="badge ${status}">${statuses[status].symbol} ${statuses[status].label}</span>`;
 const link = (href, text) => `<a class="button" href="#/${href}">${text}</a>`;
 const heading = (title, description) => `<div class="hero"><span class="eyebrow">나에게 맞는 다음 단계</span><h1>${title}</h1><p class="muted">${description}</p></div>`;
@@ -47,7 +48,8 @@ function schedule() {
 function missing() { return heading('화면을 찾을 수 없습니다', '주소를 확인하거나 정책 결과로 돌아가세요.') + link('results', '정책 결과로'); }
 function analysis() {
   const message = apiBase === null ? '서버 주소를 설정하면 저장한 조건으로 실제 판정을 요청할 수 있어요.' : '저장한 프로필을 BE 판정 엔진에 보내 결과와 근거를 받아옵니다.';
-  return heading('분석을 시작할 준비가 되었어요', message) + `<section class="card"><p id="analysis-status" role="status" aria-live="polite">${judgementRequest ? '판정 결과를 불러오는 중이에요.' : ''}</p><button class="primary" data-analyze ${apiBase === null || judgementRequest ? 'disabled' : ''}>${judgementRequest ? '판정 중…' : '내 조건 분석하기'}</button></section>`;
+  const pending = judgementRunner?.pending;
+  return heading('분석을 시작할 준비가 되었어요', message) + `<section class="card"><p id="analysis-status" role="status" aria-live="polite">${pending ? '판정 결과를 불러오는 중이에요.' : ''}</p><button class="primary" data-analyze ${apiBase === null || pending ? 'disabled' : ''}>${pending ? '판정 중…' : '내 조건 분석하기'}</button></section>`;
 }
 function renderPage(loadedData) {
   data = loadedData;
@@ -85,29 +87,37 @@ main.addEventListener('click', event => {
   if (target?.hasAttribute('data-retry')) loader.load();
   if (target?.hasAttribute('data-analyze')) startJudgement();
 });
-async function startJudgement() {
-  if (judgementRequest || apiBase === null) return;
-  judgementRequest = (async () => {
-    try {
-      const profiles = createProfileApi({ baseUrl: apiBase });
-      const profile = await profiles.get();
-      if (!profile) throw new Error('저장된 조건이 없습니다. 먼저 프로필을 저장해 주세요.');
-      const response = await createJudgementApi({ baseUrl: apiBase }).judge(profile, { sessionId: profiles.sessionId });
-      liveJudgement = toJudgementView(response);
-      location.hash = '#/results';
-    } catch (error) {
-      const status = document.querySelector('#analysis-status');
-      if (status) status.textContent = error.message || '판정을 요청하지 못했어요. 다시 시도해 주세요.';
-    } finally {
-      judgementRequest = null;
-      if (parseRoute(location.hash).page === 'analysis') {
-        const button = document.querySelector('[data-analyze]');
-        if (button) { button.disabled = apiBase === null; button.textContent = '내 조건 분석하기'; }
-      }
+function startJudgement() {
+  if (apiBase === null || judgementRunner?.pending) return;
+  if (!judgementRunner) {
+    const profiles = createProfileApi({ baseUrl: apiBase });
+    const judgement = createJudgementApi({ baseUrl: apiBase });
+    judgementRunner = createJudgementRunner({
+      loadProfile: async () => {
+        const profile = await profiles.get();
+        if (!profile) throw new Error('저장된 조건이 없습니다. 먼저 프로필을 저장해 주세요.');
+        return profile;
+      },
+      judge: (profile, options) => judgement.judge(profile, { ...options, sessionId: profiles.sessionId }),
+      isActive: () => parseRoute(location.hash).page === 'analysis',
+      onLoading: () => { main.innerHTML = analysis(); updatePageMeta(); },
+      onSuccess: response => { liveJudgement = toJudgementView(response); location.hash = '#/results'; },
+      onError: error => {
+        const status = document.querySelector('#analysis-status');
+        if (status) status.textContent = error.message || '판정을 요청하지 못했어요. 다시 시도해 주세요.';
+      },
+    });
+  }
+  judgementRunner.start().finally(() => {
+    if (parseRoute(location.hash).page === 'analysis') {
+      const button = document.querySelector('[data-analyze]');
+      if (button) { button.disabled = apiBase === null; button.textContent = '내 조건 분석하기'; }
     }
-  })();
-  await judgementRequest;
+  });
 }
-window.addEventListener('hashchange', () => { loader.show(); main.focus(); window.scrollTo(0, 0); });
+window.addEventListener('hashchange', () => {
+  if (parseRoute(location.hash).page !== 'analysis') judgementRunner?.cancel();
+  loader.show(); main.focus(); window.scrollTo(0, 0);
+});
 loader.show();
 loader.load();

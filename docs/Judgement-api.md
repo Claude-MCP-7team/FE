@@ -41,13 +41,11 @@ if (apiBase === null) throw new Error('API 주소 설정이 필요합니다.');
 const profiles = createProfileApi({ baseUrl: apiBase });
 const profile = await profiles.get();
 if (!profile) throw new Error('조건을 먼저 저장해 주세요.');
-const controller = new AbortController();
 const data = await createJudgementApi({ baseUrl: apiBase }).judge(profile, {
   sessionId: profiles.sessionId,
-  signal: controller.signal,
 });
 const view = toJudgementView(data); // Dashboard와 정책 상세에 전달
-// 화면 이탈 시 controller.abort(), 화면 출력은 HTML escape를 적용합니다.
+// 분석 화면을 떠나면 화면 runner가 AbortController로 요청을 취소합니다.
 ```
 
 ## 검증과 화면 변환
@@ -80,4 +78,4 @@ const view = toJudgementView(data); // Dashboard와 정책 상세에 전달
 | REQUEST_TIMEOUT | 요청 제한 시간 초과 |
 | REQUEST_CANCELLED | 호출자 취소 |
 
-`tests/fixtures/judgement.json`은 BE 응답 구조에 맞춰 작성한 **가상 테스트 데이터**이며 실제 정책/실제 서버 응답이 아닙니다. 테스트는 조건 4상태, 신뢰도 구분, 오류 및 취소/시간 초과, 임시 로컬 HTTP 서버 요청·응답, Dashboard·상세 HTML 변환을 확인합니다. 실제 BE 주소/CORS와 브라우저 통합 검증, 결과 갱신·이전 결과 무효화는 후속 작업입니다.
+`tests/fixtures/judgement.json`은 BE 응답 구조에 맞춰 작성한 **가상 테스트 데이터**이며 실제 정책/실제 서버 응답이 아닙니다. 테스트는 조건 4상태, 신뢰도 구분, 오류 및 취소/시간 초과, 임시 로컬 HTTP 서버 요청·응답, Dashboard·상세 HTML 변환, 화면 이탈 취소·늦은 응답 무시를 확인합니다. 실제 BE 주소/CORS와 브라우저 통합 검증, 결과 갱신·이전 결과 무효화는 후속 작업입니다.
