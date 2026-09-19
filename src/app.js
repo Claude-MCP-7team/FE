@@ -9,12 +9,14 @@ import { apiBase } from './runtime-config.js';
 import { renderJudgementDashboard, renderJudgementDetail } from './judgement-page.js';
 import { createJudgementRunner } from './judgement-runner.js';
 import { mountQuestions } from './question-page.js';
+import { mountCombinations } from './combination-page.js';
 const main = document.querySelector('main');
 let data;
 let filter = 'all';
 let liveJudgement = null;
 let judgementRunner;
 let questionMount;
+let combinationMount;
 const badge = status => `<span class="badge ${status}">${statuses[status].symbol} ${statuses[status].label}</span>`;
 const link = (href, text) => `<a class="button" href="#/${href}">${text}</a>`;
 const heading = (title, description) => `<div class="hero"><span class="eyebrow">나에게 맞는 다음 단계</span><h1>${title}</h1><p class="muted">${description}</p></div>`;
@@ -43,6 +45,7 @@ function questions() {
   return heading('판정에 필요한 추가 질문', 'UNKNOWN 상태에서는 확인되지 않은 답변을 임의로 판정하지 않습니다.') + data.questions.map(q => `<section class="card"><p class="muted">${escape(policy(q.policy_id).name)}</p><h2>${escape(q.text)}</h2><fieldset disabled><legend>답변 예시 · M3 연결 예정</legend><select aria-label="참여 이력"><option>답변을 선택하세요</option><option>예</option><option>아니오</option><option>잘 모르겠음</option></select></fieldset><p>답변 제출 → 재판정 중 → 갱신된 결과 순서로 연결할 예정입니다.</p></section>`).join('');
 }
 function combinations() {
+  if (apiBase !== null) return '<div id="live-combinations"></div>';
   return heading('함께 받을 수 있는 정책', '중복수혜 여부와 충돌 사유를 비교하는 화면 예시입니다.') + `<section class="card">${badge(data.combination.compatibility)}<h2>검토 중인 조합</h2><ul>${data.combination.policy_ids.map(id => `<li>${escape(policy(id).name)}</li>`).join('')}</ul>${data.combination.conflicts.map(c => `<p>${escape(c.reason)}</p>`).join('')}<p class="muted">중복수혜 확인 전에는 수혜 가능 조합이나 총 혜택을 확정하지 않습니다.</p>${link('schedule', '서류·일정 보기')}</section>`;
 }
 function schedule() {
@@ -69,6 +72,12 @@ function renderPage(loadedData) {
         location.hash = '#/results';
       },
       onRemount: nextMount => { questionMount = nextMount; },
+    });
+  }
+  if (page === 'combinations' && apiBase !== null) {
+    combinationMount?.cancel();
+    combinationMount = mountCombinations(main.querySelector('#live-combinations'), {
+      onRemount: nextMount => { combinationMount = nextMount; },
     });
   }
   updatePageMeta();
@@ -132,6 +141,7 @@ function startJudgement() {
 window.addEventListener('hashchange', () => {
   if (parseRoute(location.hash).page !== 'analysis') judgementRunner?.cancel();
   if (parseRoute(location.hash).page !== 'questions') questionMount?.cancel();
+  if (parseRoute(location.hash).page !== 'combinations') combinationMount?.cancel();
   loader.show(); main.focus(); window.scrollTo(0, 0);
 });
 loader.show();
