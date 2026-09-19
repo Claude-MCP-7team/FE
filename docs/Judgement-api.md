@@ -2,7 +2,7 @@
 
 2026-09-19 확인한 BE `dev`의 [판정 API](https://github.com/Claude-MCP-7team/BE/blob/dev/app/api/v1/judge.py), [응답 스키마](https://github.com/Claude-MCP-7team/BE/blob/dev/app/schemas/judgement.py), [응답 생성 코드](https://github.com/Claude-MCP-7team/BE/blob/dev/app/engine/evaluate.py) 및 [Issue #2의 FE 수용 기준](https://github.com/Claude-MCP-7team/FE/issues/2)을 반영했습니다.
 
-이번 범위는 API 클라이언트와 응답 검증·화면용 변환 함수입니다. 현재 앱의 분석 버튼·Dashboard·정책 상세에는 아직 연결하지 않았으며 화면은 기존 Mock을 사용합니다. M1·M2 완료 또는 실제 BE 통합 검증을 뜻하지 않습니다.
+API 클라이언트와 응답 검증·화면용 변환 함수는 분석 화면·Dashboard·정책 상세에 연결되어 있습니다. `YPC_API_BASE`가 설정된 서버 모드에서만 실제 요청을 보내며, 설정이 없으면 기존 Mock 결과를 유지합니다. 실제 BE 통합 검증을 뜻하지는 않습니다.
 
 ## 요청
 
@@ -28,7 +28,7 @@
 - 기본 제한 시간은 15초이며 응답 본문 수신까지 포함합니다. `timeoutMs`로 조정할 수 있습니다. `signal`로 취소할 수 있고, 제한 시간/취소 시 내부 fetch도 중단합니다.
 - 조건값을 담은 요청은 `cache: 'no-store'`를 사용합니다. ETag 캐시는 구현하지 않았으며 304를 성공 결과로 취급하지 않습니다.
 
-향후 화면 연결 예시:
+화면 연결 흐름:
 
 ```js
 import { apiBase } from './runtime-config.js';
@@ -36,18 +36,16 @@ import { createProfileApi } from './profile-api.js';
 import { createJudgementApi } from './judgement-api.js';
 import { toJudgementView } from './judgement-contract.js';
 
-// 사용자 분석 요청 시 실행. 설정이 없으면 서버 호출을 시작하지 않습니다.
+// 분석 화면의 버튼에서 실행합니다. 설정이 없으면 서버 호출을 시작하지 않습니다.
 if (apiBase === null) throw new Error('API 주소 설정이 필요합니다.');
 const profiles = createProfileApi({ baseUrl: apiBase });
 const profile = await profiles.get();
 if (!profile) throw new Error('조건을 먼저 저장해 주세요.');
-const controller = new AbortController();
 const data = await createJudgementApi({ baseUrl: apiBase }).judge(profile, {
   sessionId: profiles.sessionId,
-  signal: controller.signal,
 });
-const view = toJudgementView(data);
-// 화면 이탈 시 controller.abort(), 화면 출력은 HTML escape를 적용합니다.
+const view = toJudgementView(data); // Dashboard와 정책 상세에 전달
+// 분석 화면을 떠나면 화면 runner가 AbortController로 요청을 취소합니다.
 ```
 
 ## 검증과 화면 변환
@@ -80,4 +78,4 @@ const view = toJudgementView(data);
 | REQUEST_TIMEOUT | 요청 제한 시간 초과 |
 | REQUEST_CANCELLED | 호출자 취소 |
 
-`tests/fixtures/judgement.json`은 BE 응답 구조에 맞춰 작성한 **가상 테스트 데이터**이며 실제 정책/실제 서버 응답이 아닙니다. 테스트는 조건 4상태, 신뢰도 구분, 오류 및 취소/시간 초과, 임시 로컬 HTTP 서버 요청·응답을 확인합니다. 실제 BE 주소/CORS, 브라우저 동작, Dashboard 연결, 결과 갱신·이전 결과 무효화는 후속 작업입니다.
+`tests/fixtures/judgement.json`은 BE 응답 구조에 맞춰 작성한 **가상 테스트 데이터**이며 실제 정책/실제 서버 응답이 아닙니다. 테스트는 조건 4상태, 신뢰도 구분, 오류 및 취소/시간 초과, 임시 로컬 HTTP 서버 요청·응답, Dashboard·상세 HTML 변환, 화면 이탈 취소·늦은 응답 무시를 확인합니다. 실제 BE 주소/CORS와 브라우저 통합 검증, 결과 갱신·이전 결과 무효화는 후속 작업입니다.

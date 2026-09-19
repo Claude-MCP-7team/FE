@@ -2,14 +2,23 @@ import { statuses, validateFixture, parseRoute } from './contracts.js';
 import { mountProfile } from './profile-form.js';
 import { escape } from './dom.js';
 import { createPageLoader } from './page-loader.js';
+import { createProfileApi } from './profile-api.js';
+import { createJudgementApi } from './judgement-api.js';
+import { toJudgementView } from './judgement-contract.js';
+import { apiBase } from './runtime-config.js';
+import { renderJudgementDashboard, renderJudgementDetail } from './judgement-page.js';
+import { createJudgementRunner } from './judgement-runner.js';
 const main = document.querySelector('main');
 let data;
 let filter = 'all';
+let liveJudgement = null;
+let judgementRunner;
 const badge = status => `<span class="badge ${status}">${statuses[status].symbol} ${statuses[status].label}</span>`;
 const link = (href, text) => `<a class="button" href="#/${href}">${text}</a>`;
 const heading = (title, description) => `<div class="hero"><span class="eyebrow">나에게 맞는 다음 단계</span><h1>${title}</h1><p class="muted">${description}</p></div>`;
 const policy = id => data.policies.find(p => p.policy_id === id);
 function results() {
+  if (liveJudgement) return renderJudgementDashboard(liveJudgement);
   const selected = data.results.filter(result => filter === 'all' || result.status === filter);
   return heading('청년정책, 가능성부터 실행까지', '내 조건에 따른 결과와 이유를 확인하는 화면입니다. 기준일: 2026-09-12 · 예시 프로필') +
     `<div class="summary">${Object.entries(statuses).map(([key, value]) => `<article>${value.label}<strong>${data.results.filter(r => r.status === key).length}<small>개</small></strong></article>`).join('')}</div>` +
@@ -19,6 +28,7 @@ function results() {
     }).join('') || '<p class="card">해당 상태의 정책이 없습니다. 다른 필터를 선택하세요.</p>'}</div>`;
 }
 function detail(id) {
+  if (liveJudgement) return renderJudgementDetail(liveJudgement.results.find(result => result.policy_id === id));
   const p = policy(id), result = data.results.find(r => r.policy_id === id);
   if (!p || !result) return missing();
   return link('results', '← 정책 결과') + heading(escape(p.name), escape(p.description)) + `<section class="card">${badge(result.status)}<p class="benefit">${escape(p.benefit)}</p><p>${escape(result.reason)}</p>${result.future_eligibility_date ? `<p>향후 조건 충족 예상일: ${escape(result.future_eligibility_date)} (접수 가능 여부는 별도 확인)</p>` : ''}<h2>조건별 판정과 공고문 근거</h2>${result.conditions.map(c => `<div class="condition"><h3>${escape(c.name)} ${badge(c.status)}</h3><p>${escape(c.reason)}</p><blockquote>${escape(c.evidence.quote)}<br><small>가상 공고문 p.${escape(c.evidence.page)} · 실제 원문 연결 전</small></blockquote></div>`).join('')}<div class="actions">${result.status === 'UNKNOWN' ? link('questions', '추가 질문 확인') : ''}${link('schedule', '신청 준비 예시')}</div></section>`;
@@ -36,10 +46,15 @@ function schedule() {
   return heading('신청 준비를 한눈에', '필요서류와 신청 일정을 연결하는 화면 예시입니다.') + `<div class="grid"><section class="card"><h2>필요서류</h2>${data.documents.map(d => `<h3>${escape(d.name)} · ${d.required ? '필수' : '선택'}</h3><p>${escape(policy(d.policy_id).name)}</p><p>발급처: ${escape(d.issuer)} / 예상 ${d.estimated_days}일</p><button disabled>준비 완료 체크 · M4 연결 예정</button>`).join('')}</section><section class="card"><h2>신청 타임라인</h2>${data.schedules.map(s => `<h3>${escape(policy(s.policy_id).name)}</h3><dl><dt>준비 시작일</dt><dd>${escape(s.preparation_date)}</dd><dt>권장 신청일</dt><dd>${escape(s.recommended_date)}</dd><dt>마감일</dt><dd>${escape(s.deadline)}</dd></dl>`).join('')}</section></div>`;
 }
 function missing() { return heading('화면을 찾을 수 없습니다', '주소를 확인하거나 정책 결과로 돌아가세요.') + link('results', '정책 결과로'); }
+function analysis() {
+  const message = apiBase === null ? '서버 주소를 설정하면 저장한 조건으로 실제 판정을 요청할 수 있어요.' : '저장한 프로필을 BE 판정 엔진에 보내 결과와 근거를 받아옵니다.';
+  const pending = judgementRunner?.pending;
+  return heading('분석을 시작할 준비가 되었어요', message) + `<section class="card"><p id="analysis-status" role="status" aria-live="polite">${pending ? '판정 결과를 불러오는 중이에요.' : ''}</p><button class="primary" data-analyze ${apiBase === null || pending ? 'disabled' : ''}>${pending ? '판정 중…' : '내 조건 분석하기'}</button></section>`;
+}
 function renderPage(loadedData) {
   data = loadedData;
   const { page, id } = parseRoute(location.hash);
-  const pages = { results, profile, questions, combinations, schedule, policies: () => detail(id), analysis: () => heading('분석을 시작할 준비가 되었어요', '프로필 저장 → 분석 요청 → 결과 조회 순서입니다. 현재 실제 분석은 연결되지 않았습니다.') + link('results', 'Mock 결과 보기') };
+  const pages = { results, profile, questions, combinations, schedule, policies: () => detail(id), analysis };
   main.innerHTML = (Object.hasOwn(pages, page) ? pages[page] : missing)();
   if (page === 'profile') mountProfile(main.querySelector('#profile-content'));
   updatePageMeta();
@@ -70,7 +85,39 @@ main.addEventListener('click', event => {
   const target = event.target.closest('button');
   if (target?.dataset.filter) { filter = target.dataset.filter; loader.show(); main.querySelector(`[data-filter="${filter}"]`).focus(); }
   if (target?.hasAttribute('data-retry')) loader.load();
+  if (target?.hasAttribute('data-analyze')) startJudgement();
 });
-window.addEventListener('hashchange', () => { loader.show(); main.focus(); window.scrollTo(0, 0); });
+function startJudgement() {
+  if (apiBase === null || judgementRunner?.pending) return;
+  if (!judgementRunner) {
+    const profiles = createProfileApi({ baseUrl: apiBase });
+    const judgement = createJudgementApi({ baseUrl: apiBase });
+    judgementRunner = createJudgementRunner({
+      loadProfile: async () => {
+        const profile = await profiles.get();
+        if (!profile) throw new Error('저장된 조건이 없습니다. 먼저 프로필을 저장해 주세요.');
+        return profile;
+      },
+      judge: (profile, options) => judgement.judge(profile, { ...options, sessionId: profiles.sessionId }),
+      isActive: () => parseRoute(location.hash).page === 'analysis',
+      onLoading: () => { main.innerHTML = analysis(); updatePageMeta(); },
+      onSuccess: response => { liveJudgement = toJudgementView(response); location.hash = '#/results'; },
+      onError: error => {
+        const status = document.querySelector('#analysis-status');
+        if (status) status.textContent = error.message || '판정을 요청하지 못했어요. 다시 시도해 주세요.';
+      },
+    });
+  }
+  judgementRunner.start().finally(() => {
+    if (parseRoute(location.hash).page === 'analysis') {
+      const button = document.querySelector('[data-analyze]');
+      if (button) { button.disabled = apiBase === null; button.textContent = '내 조건 분석하기'; }
+    }
+  });
+}
+window.addEventListener('hashchange', () => {
+  if (parseRoute(location.hash).page !== 'analysis') judgementRunner?.cancel();
+  loader.show(); main.focus(); window.scrollTo(0, 0);
+});
 loader.show();
 loader.load();
