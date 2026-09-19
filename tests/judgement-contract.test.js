@@ -74,3 +74,13 @@ test('accepts empty results, null source links, zero, false, and valid leap days
   data.results = []; data.summary = { eligible: 0, ineligible: 0, needs_info: 0 };
   assert.deepEqual(validateJudgementResponse(data), data);
 });
+
+test('preserves BE policy future eligibility and future summary subset', () => {
+  const data = structuredClone(fixture);
+  data.summary.future_eligible = 1;
+  data.results[1].future_eligible_from = '2027-01-01';
+  data.results[1].needs_review_fields = [];
+  const view = toJudgementView(data);
+  assert.equal(view.summary.future_eligible, 1);
+  assert.equal(view.results[1].future_eligible_from, '2027-01-01');
+});

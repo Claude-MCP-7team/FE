@@ -1,11 +1,12 @@
 import { serverRegions } from './profile.js';
+import { parseProblem } from './problem.js';
 
 const sessionKey = 'ypc.session-id.v1';
 const uuid = /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 
 export class ApiError extends Error {
-  constructor(message, { status = 0, code = 'NETWORK_ERROR', detail = null } = {}) {
-    super(message); this.name = 'ApiError'; this.status = status; this.code = code; this.detail = detail;
+  constructor(message, { status = 0, code = 'NETWORK_ERROR', type = null, detail = null, cause = null } = {}) {
+    super(message, { cause }); this.name = 'ApiError'; this.status = status; this.code = code; this.type = type; this.detail = detail;
   }
 }
 
@@ -35,8 +36,8 @@ export function createProfileApi({ baseUrl = globalThis.__YPC_API_BASE__ ?? '', 
       }
     }
     if (!response.ok) {
-      const detail = body?.detail ?? body?.error?.message ?? null;
-      throw new ApiError(detail || `요청을 처리하지 못했어요. (${response.status})`, { status: response.status, code: body?.error?.code ?? 'HTTP_ERROR', detail });
+      const problem = parseProblem(body, response.status);
+      throw new ApiError(problem.message, { status: response.status, code: problem.code, type: problem.type, detail: problem.detail });
     }
     return body;
   }
