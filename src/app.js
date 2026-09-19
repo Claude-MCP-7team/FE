@@ -8,11 +8,13 @@ import { toJudgementView } from './judgement-contract.js';
 import { apiBase } from './runtime-config.js';
 import { renderJudgementDashboard, renderJudgementDetail } from './judgement-page.js';
 import { createJudgementRunner } from './judgement-runner.js';
+import { mountQuestions } from './question-page.js';
 const main = document.querySelector('main');
 let data;
 let filter = 'all';
 let liveJudgement = null;
 let judgementRunner;
+let questionMount;
 const badge = status => `<span class="badge ${status}">${statuses[status].symbol} ${statuses[status].label}</span>`;
 const link = (href, text) => `<a class="button" href="#/${href}">${text}</a>`;
 const heading = (title, description) => `<div class="hero"><span class="eyebrow">나에게 맞는 다음 단계</span><h1>${title}</h1><p class="muted">${description}</p></div>`;
@@ -37,6 +39,7 @@ function profile() {
   return '<div id="profile-content"></div>';
 }
 function questions() {
+  if (apiBase !== null && liveJudgement) return '<div id="live-questions"></div>';
   return heading('판정에 필요한 추가 질문', 'UNKNOWN 상태에서는 확인되지 않은 답변을 임의로 판정하지 않습니다.') + data.questions.map(q => `<section class="card"><p class="muted">${escape(policy(q.policy_id).name)}</p><h2>${escape(q.text)}</h2><fieldset disabled><legend>답변 예시 · M3 연결 예정</legend><select aria-label="참여 이력"><option>답변을 선택하세요</option><option>예</option><option>아니오</option><option>잘 모르겠음</option></select></fieldset><p>답변 제출 → 재판정 중 → 갱신된 결과 순서로 연결할 예정입니다.</p></section>`).join('');
 }
 function combinations() {
@@ -57,6 +60,17 @@ function renderPage(loadedData) {
   const pages = { results, profile, questions, combinations, schedule, policies: () => detail(id), analysis };
   main.innerHTML = (Object.hasOwn(pages, page) ? pages[page] : missing)();
   if (page === 'profile') mountProfile(main.querySelector('#profile-content'));
+  if (page === 'questions' && liveJudgement && apiBase !== null) {
+    questionMount?.cancel();
+    questionMount = mountQuestions(main.querySelector('#live-questions'), {
+      onRejudge: async (profile, sessionId, signal) => {
+        const result = await createJudgementApi({ baseUrl: apiBase }).judge(profile, { sessionId, signal });
+        liveJudgement = toJudgementView(result);
+        location.hash = '#/results';
+      },
+      onRemount: nextMount => { questionMount = nextMount; },
+    });
+  }
   updatePageMeta();
 }
 function updatePageMeta() {
@@ -117,6 +131,7 @@ function startJudgement() {
 }
 window.addEventListener('hashchange', () => {
   if (parseRoute(location.hash).page !== 'analysis') judgementRunner?.cancel();
+  if (parseRoute(location.hash).page !== 'questions') questionMount?.cancel();
   loader.show(); main.focus(); window.scrollTo(0, 0);
 });
 loader.show();

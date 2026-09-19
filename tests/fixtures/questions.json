@@ -1,0 +1,10 @@
+{
+  "snapshot_version": "synthetic-questions-v1",
+  "questions": [
+    { "field": "household_income_ratio_median", "text": "가구 소득이 기준 중위소득의 몇 %인가요?", "resolves": 2, "affects": 3, "answer_type": "number", "choices": [], "source_quote": "기준 중위소득 150% 이하", "source_policy_ids": ["P1", "P2"] },
+    { "field": "similar_program_participation_2y", "text": "최근 2년 이내 비슷한 사업에 참여했나요?", "resolves": 0, "affects": 1, "answer_type": "boolean", "choices": [], "source_quote": "유사사업 참여자는 제외", "source_policy_ids": ["P2"] },
+    { "field": "education", "text": "최종 학력이 어떻게 되시나요?", "resolves": 1, "affects": 1, "answer_type": "choice", "choices": ["middle_or_below", "university_graduated"], "source_quote": "학력 조건", "source_policy_ids": ["P3"] }
+  ],
+  "total_unresolved_fields": 3,
+  "needs_info_policies": 3
+}
