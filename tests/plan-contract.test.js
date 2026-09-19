@@ -18,5 +18,11 @@ test('rejects invalid plan statuses, dates and document references', () => {
     data => { data.documents[0].lead_time_business_days = -1; },
     data => { data.documents[0].required_by = ['']; },
     data => { data.plans[0].origin_url = 'javascript:alert(1)'; },
-  ]) assert.throws(() => validatePlanResponse((() => { const copy = structuredClone(fixture); change(copy); return copy; })()), error => error.code === 'INVALID_RESPONSE');
+]) assert.throws(() => validatePlanResponse((() => { const copy = structuredClone(fixture); change(copy); return copy; })()), error => error.code === 'INVALID_RESPONSE');
+});
+
+test('rejects summary counts that do not match plans', () => {
+  const data = structuredClone(fixture);
+  data.summary.on_track = 0;
+  assert.throws(() => validatePlanResponse(data), error => error.code === 'INVALID_RESPONSE' && error.detail === 'summary.on_track');
 });

@@ -38,6 +38,13 @@ export function validatePlanResponse(data) {
     plan.documents.forEach((document, documentIndex) => validateDocument(document, `${path}.documents[${documentIndex}]`));
     requireValue(!policyIds.has(plan.policy_id), `${path}.policy_id`); policyIds.add(plan.policy_id);
   });
+  const planCounts = { urgent: 0, on_track: 0, rolling: 0, unknown_deadline: 0, closed: 0, infeasible: 0 };
+  data.plans.forEach(plan => {
+    const key = { URGENT: 'urgent', ON_TRACK: 'on_track', ROLLING: 'rolling', UNKNOWN: 'unknown_deadline', CLOSED: 'closed', INFEASIBLE: 'infeasible' }[plan.status];
+    planCounts[key]++;
+  });
+  for (const key of Object.keys(planCounts)) requireValue(planCounts[key] === data.summary[key], `summary.${key}`);
+  requireValue(data.summary.total === data.plans.length, 'summary.total');
   data.documents.forEach((document, index) => {
     const path = `documents[${index}]`;
     requireValue(object(document) && text(document.name), path);
