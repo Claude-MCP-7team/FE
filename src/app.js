@@ -10,6 +10,7 @@ import { renderJudgementDashboard, renderJudgementDetail } from './judgement-pag
 import { createJudgementRunner } from './judgement-runner.js';
 import { mountQuestions } from './question-page.js';
 import { mountCombinations } from './combination-page.js';
+import { mountPlan } from './plan-page.js';
 const main = document.querySelector('main');
 let data;
 let filter = 'all';
@@ -17,6 +18,7 @@ let liveJudgement = null;
 let judgementRunner;
 let questionMount;
 let combinationMount;
+let planMount;
 const badge = status => `<span class="badge ${status}">${statuses[status].symbol} ${statuses[status].label}</span>`;
 const link = (href, text) => `<a class="button" href="#/${href}">${text}</a>`;
 const heading = (title, description) => `<div class="hero"><span class="eyebrow">나에게 맞는 다음 단계</span><h1>${title}</h1><p class="muted">${description}</p></div>`;
@@ -49,6 +51,7 @@ function combinations() {
   return heading('함께 받을 수 있는 정책', '중복수혜 여부와 충돌 사유를 비교하는 화면 예시입니다.') + `<section class="card">${badge(data.combination.compatibility)}<h2>검토 중인 조합</h2><ul>${data.combination.policy_ids.map(id => `<li>${escape(policy(id).name)}</li>`).join('')}</ul>${data.combination.conflicts.map(c => `<p>${escape(c.reason)}</p>`).join('')}<p class="muted">중복수혜 확인 전에는 수혜 가능 조합이나 총 혜택을 확정하지 않습니다.</p>${link('schedule', '서류·일정 보기')}</section>`;
 }
 function schedule() {
+  if (apiBase !== null) return '<div id="live-plan"></div>';
   return heading('신청 준비를 한눈에', '필요서류와 신청 일정을 연결하는 화면 예시입니다.') + `<div class="grid"><section class="card"><h2>필요서류</h2>${data.documents.map(d => `<h3>${escape(d.name)} · ${d.required ? '필수' : '선택'}</h3><p>${escape(policy(d.policy_id).name)}</p><p>발급처: ${escape(d.issuer)} / 예상 ${d.estimated_days}일</p><button disabled>준비 완료 체크 · M4 연결 예정</button>`).join('')}</section><section class="card"><h2>신청 타임라인</h2>${data.schedules.map(s => `<h3>${escape(policy(s.policy_id).name)}</h3><dl><dt>준비 시작일</dt><dd>${escape(s.preparation_date)}</dd><dt>권장 신청일</dt><dd>${escape(s.recommended_date)}</dd><dt>마감일</dt><dd>${escape(s.deadline)}</dd></dl>`).join('')}</section></div>`;
 }
 function missing() { return heading('화면을 찾을 수 없습니다', '주소를 확인하거나 정책 결과로 돌아가세요.') + link('results', '정책 결과로'); }
@@ -78,6 +81,12 @@ function renderPage(loadedData) {
     combinationMount?.cancel();
     combinationMount = mountCombinations(main.querySelector('#live-combinations'), {
       onRemount: nextMount => { combinationMount = nextMount; },
+    });
+  }
+  if (page === 'schedule' && apiBase !== null) {
+    planMount?.cancel();
+    planMount = mountPlan(main.querySelector('#live-plan'), {
+      onRemount: nextMount => { planMount = nextMount; },
     });
   }
   updatePageMeta();
@@ -142,6 +151,7 @@ window.addEventListener('hashchange', () => {
   if (parseRoute(location.hash).page !== 'analysis') judgementRunner?.cancel();
   if (parseRoute(location.hash).page !== 'questions') questionMount?.cancel();
   if (parseRoute(location.hash).page !== 'combinations') combinationMount?.cancel();
+  if (parseRoute(location.hash).page !== 'schedule') planMount?.cancel();
   loader.show(); main.focus(); window.scrollTo(0, 0);
 });
 loader.show();

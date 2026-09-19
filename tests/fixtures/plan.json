@@ -1,0 +1,25 @@
+{
+  "snapshot_version": "synthetic-plan-v1",
+  "generated_for_date": "2026-09-19",
+  "summary": { "total": 1, "urgent": 0, "on_track": 1, "rolling": 0, "unknown_deadline": 0, "closed": 0, "infeasible": 0 },
+  "plans": [{
+    "policy_id": "P-1", "title": "청년 도약 지원", "status": "ON_TRACK",
+    "apply_start_date": "2026-09-20", "deadline_date": "2026-10-10", "recommended_start_date": "2026-09-25",
+    "slack_business_days": 10, "business_days_to_deadline": 15, "preparation_business_days": 5,
+    "documents": [{ "name": "주민등록초본", "issuer": "정부24", "lead_time_business_days": 1, "lead_time_estimated": false, "cost_krw": 0, "requires_visit": false, "master_unverified": false }],
+    "reason": "서류를 준비할 여유가 있어요.", "estimated": false, "outside_calendar_coverage": false,
+    "dept_name": "청년정책과", "dept_tel": "02-0000-0000", "origin_url": "https://example.org/p-1"
+  }],
+  "documents": [{
+    "name": "주민등록초본", "doc_code": "RESIDENCE", "issuer": "정부24", "lead_time_business_days": 1,
+    "lead_time_min_business_days": 1, "lead_time_estimated": false, "cost_krw": 0,
+    "issue_kind": "online", "channel": "정부24", "requires_visit": false, "master_unverified": false,
+    "required_by": ["P-1"], "required_by_titles": ["청년 도약 지원"], "needed_by_date": "2026-09-25",
+    "validity_days": 30, "issue_not_before": null, "single_issue_covers_all": true, "notes": null
+  }],
+  "total_document_cost_krw": 0,
+  "visit_required_count": 0,
+  "unverified_document_count": 0,
+  "calendar_source_ref": "synthetic-calendar-v1",
+  "disclaimer": "최종 일정은 담당 기관에 확인해 주세요."
+}
