@@ -1,5 +1,11 @@
 # Frontend 진행 기록
 
+## 2026-09-19 · M2 분석 화면·결과 Dashboard 연결
+
+- **완료:** PR #11 병합 확인 후 최신 dev에서 판정 API를 화면에 연결. `YPC_API_BASE`가 설정되면 분석 화면에서 저장된 BE 프로필을 조회해 판정을 요청하고, 성공 시 실제 verdict·confidence·조건 근거를 Dashboard와 정책 상세에 표시. API 미설정은 Mock 결과 fallback, 프로필 없음·실패·로딩은 화면 상태로 안내.
+- **검증:** `npm.cmd test` 69개, `npm.cmd run check`, `git diff --check` 통과. live Dashboard 3분류 요약, 조건 4상태·미래 날짜·영구 불충족·담당부서 근거·HTML escape, empty/error 상태와 정적 서버 모듈 제공을 검증.
+- **다음:** 실제 BE 주소/CORS 브라우저 E2E, 분석 재요청·새로고침 정책, 질문·조합·서류 화면 연결. M1 소득·동의 계약 및 M2 전체 완료 조건은 남아 있음.
+
 ## 2026-09-19 · M2 판정 API 클라이언트와 응답 검증
 
 - **완료:** PR #10 병합 확인 후 최신 dev에서 독립 작업. `POST /v1/judge?include=all` 클라이언트, 15초 제한 시간·요청 취소·오류 구분 구현. BE의 3개 정책 verdict와 별도 confidence를 보존하는 응답 검증기 및 조건 4상태 변환 함수 추가. 전체 목록/요약 일치, 중복 조건, 원문 근거, 개별 날짜, 담당부서 연락처 검증.

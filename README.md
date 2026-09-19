@@ -29,6 +29,6 @@ M0 앱의 http://127.0.0.1:5173/#/profile 도 같은 입력 폼을 사용합니�
 - `prototype/index.html`: 기존 정적 초안 원본
 - [화면·API 계약 초안](docs/Frontend-contract.md)
 - [진행 기록과 남은 작업](docs/Frontend-progress.md)
-- [판정 API 클라이언트와 검증 범위](docs/Judgement-api.md) · 화면 연결 전
+- [판정 API 클라이언트와 검증 범위](docs/Judgement-api.md) · 분석·결과 화면 연결
 
 모든 정책과 판정은 가상 예시입니다. 프로필 서버 연결은 설정 시 사용 가능하며, 실제 BE 통합 검증과 정책 판정 API 연결은 아직 남아 있습니다.
