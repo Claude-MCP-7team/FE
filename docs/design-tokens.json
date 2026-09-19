@@ -30,9 +30,9 @@
         "future-pass-bg":   { "value": "#e5edf8", "type": "color" }
       },
       "plan": {
-        "alert-ink":   { "value": "#8a3d10", "type": "color", "description": "계획 URGENT / INFEASIBLE · 대비 6.55" },
-        "alert-bg":    { "value": "#ffeadb", "type": "color" },
-        "accent":      { "value": "#c2521a", "type": "color", "description": "급한 카드 좌측 4px 선" }
+        "alert-ink":   { "value": "#1b3f73", "type": "color", "description": "계획 URGENT / INFEASIBLE · 대비 6.43" },
+        "alert-bg":    { "value": "#b3ccf7", "type": "color" },
+        "accent":      { "value": "#2f5fae", "type": "color", "description": "급한 카드 좌측 4px 선 · 흰 배경 대비 6.23" }
       },
       "notice": {
         "ink":         { "value": "#705017", "type": "color", "description": "상단 면책 배너 · 대비 6.71" },
