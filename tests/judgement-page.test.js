@@ -49,3 +49,36 @@ test('unknown detail and empty dashboard are explicit states', () => {
   const empty = structuredClone(fixture); empty.results = []; empty.summary = { eligible: 0, ineligible: 0, needs_info: 0 };
   assert.match(renderJudgementDashboard(toJudgementView(empty)), /표시할 판정 결과가 없습니다/);
 });
+
+test('a policy name is shown when BE sends one, an identifier when it does not', () => {
+  const withoutTitle = toJudgementView(structuredClone(fixture));
+  const bare = renderJudgementDashboard(withoutTitle);
+  // No name available: the id is marked as an identifier, never set as a plain heading.
+  assert.match(bare, /<h2><code class="policy-ref">TEST-ELIGIBLE<\/code><\/h2>/);
+
+  const named = structuredClone(fixture);
+  named.results[0].title = '청년 도약 지원';
+  const html = renderJudgementDashboard(toJudgementView(named));
+  assert.match(html, /<h2>청년 도약 지원<\/h2>/);
+  assert.doesNotMatch(html, /<h2><code class="policy-ref">TEST-ELIGIBLE/);
+  // The link still targets the id, which is what the route needs.
+  assert.match(html, /href="#\/policies\/TEST-ELIGIBLE"/);
+});
+
+test('a blank or hostile title falls back and never injects markup', () => {
+  const blank = structuredClone(fixture);
+  blank.results[0].title = '   ';
+  assert.match(renderJudgementDashboard(toJudgementView(blank)), /<code class="policy-ref">TEST-ELIGIBLE<\/code>/);
+
+  const hostile = structuredClone(fixture);
+  hostile.results[0].title = '<script>alert(1)</script>';
+  const html = renderJudgementDashboard(toJudgementView(hostile));
+  assert.doesNotMatch(html, /<script>alert/);
+  assert.match(html, /&lt;script&gt;/);
+});
+
+test('a non-string title is rejected rather than rendered', () => {
+  const wrong = structuredClone(fixture);
+  wrong.results[0].title = 42;
+  assert.throws(() => toJudgementView(wrong), /판정 응답을 확인할 수 없어요/);
+});

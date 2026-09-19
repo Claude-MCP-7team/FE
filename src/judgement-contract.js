@@ -44,7 +44,7 @@ export function validateJudgementResponse(data) {
     requireValue(typeof result.verdict === 'string' && Object.hasOwn(verdictKeys, result.verdict), `${path}.verdict`);
     totals[verdictKeys[result.verdict]]++;
     requireValue(confidences.includes(result.confidence), `${path}.confidence`);
-    for (const key of ['explanation', 'dept_name', 'dept_tel']) nullableText(result[key], `${path}.${key}`);
+    for (const key of ['title', 'explanation', 'dept_name', 'dept_tel']) nullableText(result[key], `${path}.${key}`);
     sourceUrl(result.origin_url, `${path}.origin_url`);
     requireValue(result.disclaimer_required === undefined || typeof result.disclaimer_required === 'boolean', `${path}.disclaimer_required`);
     if (result.confidence !== 'CONFIRMED') {

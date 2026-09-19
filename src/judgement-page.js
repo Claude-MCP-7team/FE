@@ -11,6 +11,13 @@ const confidenceNotes = {
   ESTIMATED: '일부 조건은 추정입니다. 판정 근거를 확인해 주세요.',
   NEEDS_REVIEW: '공고문 근거에 확인이 필요합니다. 담당부서로 문의해 주세요.',
 };
+// The judge response carries no policy name yet, so policy_id is all we have.
+// It is shown as an identifier rather than set in a heading as if it were a name:
+// a bare code styled as a title reads as the policy's actual name. Drops away the
+// moment BE sends `title`.
+const policyName = result => result.title?.trim()
+  ? escape(result.title)
+  : `<code class="policy-ref">${escape(result.policy_id)}</code>`;
 const badge = status => `<span class="badge ${status}">${escape(conditionLabels[status] ?? status)}</span>`;
 
 export function renderJudgementDashboard(view, { onDetail = id => `#/policies/${encodeURIComponent(id)}` } = {}) {
@@ -19,7 +26,7 @@ export function renderJudgementDashboard(view, { onDetail = id => `#/policies/${
     const [label, style] = verdicts[result.verdict];
     const note = confidenceNotes[result.confidence];
     const confidence = note ? `<p class="muted">${note}</p>` : '';
-    return `<article class="card judgement-card"><div><span class="badge ${style}">${label}</span> ${chip(result.confidence)}</div><h2>${escape(result.policy_id)}</h2>${confidence}<p>${escape(result.explanation ?? '정책 조건을 확인해 주세요.')}</p><a class="button" href="${onDetail(result.policy_id)}">판정 근거 보기</a></article>`;
+    return `<article class="card judgement-card"><div><span class="badge ${style}">${label}</span> ${chip(result.confidence)}</div><h2>${policyName(result)}</h2>${confidence}<p>${escape(result.explanation ?? '정책 조건을 확인해 주세요.')}</p><a class="button" href="${onDetail(result.policy_id)}">판정 근거 보기</a></article>`;
   }).join('') || '<p class="card">표시할 판정 결과가 없습니다.</p>'}</div>`;
 }
 
@@ -28,5 +35,5 @@ export function renderJudgementDetail(result) {
   const [label, style] = verdicts[result.verdict];
   const conditions = result.conditions.map(condition => `<div class="condition"><h3>${escape(condition.field)} ${badge(condition.status)}</h3><p>${condition.status === 'FUTURE_PASS' && condition.satisfiable_from ? `예상 충족일: ${escape(condition.satisfiable_from)}` : condition.status === 'FAIL' && condition.permanently_unsatisfiable ? '시간이 지나도 충족할 수 없는 조건입니다.' : ''}</p><blockquote>${escape(condition.evidence.quote)}${condition.evidence.url ? `<br><a href="${escape(condition.evidence.url)}" rel="noreferrer">원문 보기</a>` : ''}</blockquote></div>`).join('');
   const contact = result.confidence === 'CONFIRMED' ? '' : `<p class="notice-inline">${escape(result.dept_name)} · ${escape(result.dept_tel)}로 최종 확인해 주세요.</p>`;
-  return `<a class="button" href="#/results">← 정책 결과</a><div class="hero"><span class="eyebrow">정책 판정 상세</span><h1>${escape(result.policy_id)}</h1><p>${escape(result.explanation ?? '')}</p></div><section class="card"><p><span class="badge ${style}">${label}</span> ${chip(result.confidence)}</p>${contact}<h2>조건별 판정과 원문 근거</h2>${conditions || '<p>조건 상세가 없습니다.</p>'}</section>`;
+  return `<a class="button" href="#/results">← 정책 결과</a><div class="hero"><span class="eyebrow">정책 판정 상세</span><h1>${policyName(result)}</h1><p>${escape(result.explanation ?? '')}</p></div><section class="card"><p><span class="badge ${style}">${label}</span> ${chip(result.confidence)}</p>${contact}<h2>조건별 판정과 원문 근거</h2>${conditions || '<p>조건 상세가 없습니다.</p>'}</section>`;
 }

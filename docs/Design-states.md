@@ -17,7 +17,7 @@ Milestone 11장 "반드시 고정할 인터페이스 4개" 중 **4번 `Design �
 | S-1 | 정책 수준 매핑을 3분류로 확정할 것인가 | Design + BE | 높음 |
 | S-2 | `FUTURE_PASS`를 정책 수준에서 살릴 것인가 | Design + BE | 높음 |
 | S-3 | `NEEDS_INFO`와 `NEEDS_REVIEW`를 화면에서 구분 | Design | 보통 |
-| S-5 | 정책 제목 (현재 `policy_id` 노출) | Design + BE | 보통 |
+| S-5 | 정책 제목 | Design + BE | **FE측 완료** — BE에 `title` 필드 요청 중 |
 | S-6 | 원문 URL이 없을 때 근거 블록 표시 | Design | 낮음 |
 | S-7 | 긴 인용문 처리 방식 | Design | 낮음 |
 
@@ -77,7 +77,7 @@ S-4는 확정·적용했다. 나머지는 미정이며, 다음은 **S-1·S-2**�
 | `confidence` 표시 | ~~UNKNOWN 색 배지 + enum 원문~~ → **중성 칩 + 한국어 문구** (S-4에서 수정) | 같은 함수 |
 | 조건 status | matched→PASS / unmatched+`satisfiable_from`→FUTURE_PASS / unmatched→FAIL / unknown→UNKNOWN | `judgement-contract.js` |
 | 근거 URL | `rule.source_url` → 없으면 `result.origin_url` → 없으면 표시 안 함 | `toJudgementView` |
-| 정책 제목 | **`policy_id` 원문** (정책명 아님) | `renderJudgementDetail` |
+| 정책 제목 | ~~`policy_id` 원문~~ → **`title` 수용, 없으면 식별자 표시** (S-5) | `renderJudgementDetail` |
 
 ### 확정된 것 (그대로 둔다)
 
@@ -96,9 +96,9 @@ S-4는 확정·적용했다. 나머지는 미정이며, 다음은 **S-1·S-2**�
 
 배지에 `ESTIMATED`, `NEEDS_REVIEW`가 영어 대문자로 찍혔다. 한국어 문구로 바꿨다.
 
-**(다) 정책 제목이 `policy_id`다**
+**(다) 정책 제목이 `policy_id`였다** — S-5에서 부분 해소했다
 
-상세·카드 제목에 내부 ID가 노출된다. 정책명 필드를 BE에 요청하거나 정책 조회 API와 연결해야 한다.
+내부 ID가 정책 이름인 것처럼 제목 자리에 놓여 있었다. 식별자로 보이도록 바꾸고 `title` 수용 경로를 열었다. 실제 이름이 나오려면 BE 변경이 필요하다.
 
 **(라) `INELIGIBLE`인데 조건에 `FUTURE_PASS`가 있는 경우**
 
@@ -194,16 +194,33 @@ BE `verdict`에는 "향후 가능"이 없다. 조건 수준에만 `satisfiable_f
 
 **브라우저에서 칩이 배지와 충분히 구별되는지 실제로 봐야 한다.** 대비값은 계산으로만 검증했다.
 
-### S-5 · 정책 제목 【미정】
+### S-5 · 정책 제목 【부분 확정 · 2026-09-19 · BE 변경 필요】
 
-현재 카드·상세 제목이 `policy_id` 원문이다.
+카드·상세 제목이 `policy_id` 원문이었다. BE `dev`의 `app/schemas/judgement.py`를 확인한 결과
+**`JudgementResult`에 정책명 필드가 없다.** `policy_id`, `verdict`, `confidence`, `explanation`, 담당부서 필드만 있다.
 
-- **선택지 A** — BE 판정 응답에 정책명을 포함해 달라고 요청한다.
-- **선택지 B** — `GET /v1/policies/{id}`로 별도 조회해 채운다. (요청 수가 늘어난다)
+#### FE 단독 우회가 모두 나쁜 이유
 
-**결정:** _(미정)_
+| 방법 | 문제 |
+| --- | --- |
+| `GET /v1/policies/{id}`를 정책마다 호출 | 이 API는 룰과 근거 인용까지 포함한 **전문**을 반환한다. `app/schemas/catalog.py` 주석이 "목록이 요약만 내보내는" 이유로 이 무게를 든다. 제목 하나 때문에 카드 수만큼 전문을 받는다 |
+| `GET /v1/policies` 목록으로 맵 구성 | `limit` 최대 100, id 필터 없음, 실스냅샷 1,555건. 판정된 정책만 고를 수 없다 |
+
+**BE가 판정 시점에 이미 `policy.title`을 들고 있다** (`_summarize()`가 같은 값을 쓴다). 한 필드를 응답에 싣는 것이 맞다.
+
+#### FE가 한 것
+
+- `JudgementResult.title`이 오면 제목으로 쓴다. 검증기는 문자열이 아니면 거부한다.
+- 없으면 `policy_id`를 **식별자로** 표시한다. 고정폭·작은 글자·중성색·테두리(`code.policy-ref`).
+
+`policy_id`를 그냥 제목 자리에 넣으면 **그것이 정책 이름인 것처럼 읽힌다.** 식별자로 보이게 하면 사용자가 "이름을 못 받아왔구나"로 읽는다. 제목이 없다는 사실을 숨기지 않는 것이 이번 처리의 요점이다.
+
+BE가 `title`을 보내기 시작하면 FE 변경 없이 제목이 나온다.
+
+**BE 요청 사항:** `JudgementResult`에 `title: str` 추가.
 
 ---
+
 
 ## 5. 근거(Evidence) 표시 규격
 
