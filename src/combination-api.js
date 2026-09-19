@@ -1,5 +1,6 @@
 import { ApiError } from './profile-api.js';
 import { validateCombinationResponse } from './combination-contract.js';
+import { parseProblem } from './problem.js';
 
 function timeoutSignal(signal, timeoutMs) {
   const controller = new AbortController(); let timer;
@@ -20,7 +21,7 @@ export function createCombinationApi({ baseUrl = '', fetchImpl = fetch, timeoutM
         try { response = await fetchImpl(`${String(baseUrl).replace(/\/$/, '')}/v1/combinations`, { method: 'POST', headers, body: JSON.stringify(profile), signal: request.signal, cache: 'no-store' }); }
         catch (error) { throw new ApiError('조합 추천을 불러오지 못했어요.', { code: request.signal.aborted ? (signal?.aborted ? 'REQUEST_CANCELLED' : 'REQUEST_TIMEOUT') : 'NETWORK_ERROR', cause: error }); }
         let body; try { body = await response.json(); } catch (error) { throw new ApiError('조합 추천 응답을 읽지 못했어요.', { code: 'INVALID_RESPONSE', cause: error }); }
-        if (!response.ok) throw new ApiError(body?.detail || '조합 추천 요청에 실패했어요.', { code: 'HTTP_ERROR', status: response.status, response: body });
+        if (!response.ok) { const problem = parseProblem(body, response.status); throw new ApiError(problem.message, { code: problem.code, type: problem.type, status: response.status, detail: problem.detail }); }
         try { return validateCombinationResponse(body); } catch (error) { if (error instanceof ApiError) throw error; throw new ApiError('조합 추천 응답을 확인할 수 없어요.', { code: 'INVALID_RESPONSE', cause: error }); }
       } finally { request.clear(); }
     },

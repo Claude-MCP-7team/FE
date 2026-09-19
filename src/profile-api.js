@@ -1,11 +1,12 @@
 import { serverRegions } from './profile.js';
+import { parseProblem } from './problem.js';
 
 const sessionKey = 'ypc.session-id.v1';
 const uuid = /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 
 export class ApiError extends Error {
-  constructor(message, { status = 0, code = 'NETWORK_ERROR', detail = null } = {}) {
-    super(message); this.name = 'ApiError'; this.status = status; this.code = code; this.detail = detail;
+  constructor(message, { status = 0, code = 'NETWORK_ERROR', type = null, detail = null, cause = null } = {}) {
+    super(message, { cause }); this.name = 'ApiError'; this.status = status; this.code = code; this.type = type; this.detail = detail;
   }
 }
 
@@ -23,11 +24,11 @@ export function createProfileApi({ baseUrl = globalThis.__YPC_API_BASE__ ?? '', 
     if (session) headers.set('X-Session-Id', session);
     let response;
     try { response = await fetchImpl(url(path), { ...options, headers }); }
-    catch (error) { throw new ApiError('서버에 연결하지 못했어요.', { detail: error }); }
+    catch (error) { throw new ApiError('서버에 연결하지 못했어요.', { cause: error }); }
     let body = null;
     let text;
     try { text = await response.text(); }
-    catch (error) { throw new ApiError('서버 응답을 읽지 못했어요. 다시 시도해 주세요.', { detail: error }); }
+    catch (error) { throw new ApiError('서버 응답을 읽지 못했어요. 다시 시도해 주세요.', { cause: error }); }
     if (text) {
       try { body = JSON.parse(text); }
       catch {
@@ -35,8 +36,8 @@ export function createProfileApi({ baseUrl = globalThis.__YPC_API_BASE__ ?? '', 
       }
     }
     if (!response.ok) {
-      const detail = body?.detail ?? body?.error?.message ?? null;
-      throw new ApiError(detail || `요청을 처리하지 못했어요. (${response.status})`, { status: response.status, code: body?.error?.code ?? 'HTTP_ERROR', detail });
+      const problem = parseProblem(body, response.status);
+      throw new ApiError(problem.message, { status: response.status, code: problem.code, type: problem.type, detail: problem.detail });
     }
     return body;
   }

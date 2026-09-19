@@ -1,5 +1,6 @@
 import { ApiError } from './profile-api.js';
 import { validateJudgementResponse } from './judgement-contract.js';
+import { parseProblem } from './problem.js';
 
 export function createJudgementApi({ baseUrl = globalThis.__YPC_API_BASE__ ?? '', fetchImpl = globalThis.fetch, timeoutMs = 15000 } = {}) {
   if (typeof fetchImpl !== 'function') throw new TypeError('fetch 구현이 필요합니다.');
@@ -30,7 +31,7 @@ export function createJudgementApi({ baseUrl = globalThis.__YPC_API_BASE__ ?? ''
           response = await fetchImpl(`${String(baseUrl).replace(/\/$/, '')}/v1/judge?include=all`, { method: 'POST', headers, body, signal: controller.signal, cache: 'no-store' });
           responseText = await response.text();
         } catch (error) {
-          throw new ApiError('판정 서버에 연결하지 못했어요.', { detail: error });
+          throw new ApiError('판정 서버에 연결하지 못했어요.', { cause: error });
         }
         let data;
         try { data = JSON.parse(responseText); }
@@ -38,8 +39,8 @@ export function createJudgementApi({ baseUrl = globalThis.__YPC_API_BASE__ ?? ''
           if (response.ok) throw new ApiError('판정 응답 형식이 올바르지 않아요.', { code: 'INVALID_RESPONSE' });
         }
         if (!response.ok) {
-          const detail = data?.detail ?? data?.error?.message ?? null;
-          throw new ApiError(typeof detail === 'string' ? detail : `판정 요청을 처리하지 못했어요. (${response.status})`, { status: response.status, code: 'HTTP_ERROR', detail });
+          const problem = parseProblem(data, response.status);
+          throw new ApiError(problem.message, { status: response.status, code: problem.code, type: problem.type, detail: problem.detail });
         }
         const result = validateJudgementResponse(data);
         if (result.session_id !== (sessionId || 'anonymous')) throw new ApiError('판정 세션이 요청과 일치하지 않아요.', { code: 'INVALID_RESPONSE', detail: 'session_id' });
