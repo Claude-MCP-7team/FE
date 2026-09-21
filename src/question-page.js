@@ -33,9 +33,9 @@ export function mountQuestions(container, { onRejudge, profileApi = null, questi
       form.addEventListener('submit', async event => {
         event.preventDefault(); const status = form.querySelector('#question-status');
         if (form.dataset.busy) return; form.dataset.busy = 'true'; status.textContent = '답변을 저장하고 다시 판정하는 중이에요.';
-        for (const control of form.querySelectorAll('input, select, button')) control.disabled = true;
         try {
           const answers = normalizeAnswers(queue.questions, Object.fromEntries(new FormData(form)));
+          for (const control of form.querySelectorAll('input, select, button')) control.disabled = true;
           const next = { ...profile, answers: { ...(profile.answers ?? {}), ...answers } };
           await profiles.put(next);
           await onRejudge(next, profiles.sessionId, controller.signal);

@@ -1,5 +1,7 @@
 # YouthFit AI Frontend
 
+배포 파일 생성, 실 API 점검 결과와 남은 DB/CORS 설정은 [FE 배포 준비](docs/Deployment.md)를 참고하세요. `npm.cmd run build`는 `YPC_API_BASE`를 필수로 받아 `dist/`를 생성합니다.
+
 청년정책 자격 판정 서비스의 M0 화면·Mock 계약 초안입니다.
 
 Node.js 22 이상에서 추가 패키지 설치 없이 실행합니다.

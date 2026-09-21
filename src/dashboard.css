@@ -257,3 +257,6 @@ main#content{max-width:1180px;width:calc(100% - 40px);margin:0 auto;padding:46px
 .reference-dashboard #schedule,.reference-dashboard #combination{scroll-margin-top:84px}
 .reference-dashboard .toast{max-width:calc(100% - 32px);width:max-content}
 @media(max-width:700px){header.topbar{display:block}.topbar nav{flex-direction:row;align-items:center}.nav-links{gap:12px}.topbar .brand{font-size:15px}main#content{width:calc(100% - 24px);padding-top:30px}.reference-dashboard .summary-card.main .note{white-space:normal}.reference-dashboard .overlay{padding:8px}.reference-dashboard #profileOverlay .modal{padding:20px;max-height:calc(100dvh - 16px)}.reference-dashboard .form-actions{bottom:-20px;margin:10px -20px -20px;padding:14px 20px}.reference-dashboard .form-actions .btn{font-size:14px}.reference-dashboard .summary-card{padding:17px}.reference-dashboard .policy-side{flex-wrap:wrap}}
+
+/* Live API pages use their own content flow within the shared brand shell. */
+.api-mode .hero{display:block}.api-mode .condition{display:block}.api-mode .summary{grid-template-columns:repeat(4,minmax(0,1fr))}.api-mode .profile{font-size:13px}.api-mode .primary:hover{background:var(--secondary)}@media(max-width:700px){.api-mode .summary{grid-template-columns:repeat(2,minmax(0,1fr))}}

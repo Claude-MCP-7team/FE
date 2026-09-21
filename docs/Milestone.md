@@ -1,3 +1,7 @@
+> **BE 진행 확인: 2026-09-21** — `dev@002e749`의 코드와 [CI 35501247191](https://github.com/Claude-MCP-7team/BE/actions/runs/35501247191)을 대조해 M0~M4 Backend 작업 **37개**를 체크했다. Linux **658 passed / 1 skipped**, Windows **626 passed / 33 skipped**이며 이번 점검에서 테스트를 로컬 재실행한 것은 아니다.
+>
+> 개별 BE 작업 완료와 팀 전체 마일스톤 완료는 구분한다. `main`은 초기 README 상태이고 AI 브랜치의 고유 8커밋은 dev에 미병합이다. 실제 FE/CORS 통합·실 LLM 호출·만료된 실제 공고 조합 데모는 완료로 간주하지 않았다. [체크 근거와 남은 작업](Backend-progress-audit-2026-09-21.md)을 참고한다.
+
 <aside>
 📌
 
@@ -141,14 +145,14 @@ v3.0 원칙: **v2.0의 짧고 현실적인 일정 + v1.0의 명확한 기술 책
 
 ### 🛠️ Backend
 
-- [ ]  온통청년 OPEN API 실제 호출 확인
-- [ ]  원문 공고문 URL 확보 가능 여부 확인
-- [ ]  1차 범위 정책 수 대략 확인
-- [ ]  UserProfile / Policy / PolicyCondition / EligibilityResult Schema 확정
-- [ ]  AIQuestion / PolicyConflict / RequiredDocument / ApplicationSchedule Schema 확정
-- [ ]  API Response / Error 규격 확정
-- [ ]  FE Mock JSON 제공
-- [ ]  AI ↔ BE DTO 확정
+- [x]  온통청년 OPEN API 실제 호출 확인
+- [x]  원문 공고문 URL 확보 가능 여부 확인
+- [x]  1차 범위 정책 수 대략 확인
+- [x]  UserProfile / Policy / PolicyCondition / EligibilityResult Schema 확정
+- [x]  AIQuestion / PolicyConflict / RequiredDocument / ApplicationSchedule Schema 확정
+- [x]  API Response / Error 규격 확정
+- [x]  FE Mock JSON 제공
+- [x]  AI ↔ BE DTO 확정
 
 ### 💻 Frontend
 
@@ -201,19 +205,19 @@ v3.0 원칙: **v2.0의 짧고 현실적인 일정 + v1.0의 명확한 기술 책
 
 #### 9/7 ~ 9/8
 
-- [ ]  DB 기본 Schema 적용
-- [ ]  UserProfile CRUD
+- [x]  DB 기본 Schema 적용
+- [x]  UserProfile CRUD
 
 #### 9/9 ~ 9/10
 
-- [ ]  정책 수집 모듈
-- [ ]  Policy 목록/상세 API
-- [ ]  원문 공고문 URL 저장
+- [x]  정책 수집 모듈
+- [x]  Policy 목록/상세 API
+- [x]  원문 공고문 URL 저장
 
 #### 9/11
 
-- [ ]  AI Parsing 결과 저장 연결
-- [ ]  테스트 정책 Seed Data 준비
+- [x]  AI Parsing 결과 저장 연결 — 검증 후 JSON 정책/스냅샷 저장. 실제 LLM 호출 또는 Policy DB 적재 완료와는 별개.
+- [x]  테스트 정책 Seed Data 준비
 
 ### 🤖 AI
 
@@ -257,22 +261,22 @@ v3.0 원칙: **v2.0의 짧고 현실적인 일정 + v1.0의 명확한 기술 책
 
 #### 9/12 ~ 9/14
 
-- [ ]  UserProfile ↔ PolicyCondition Mapping 규칙 구현
-- [ ]  연령·지역·거주기간·소득·학력·취업 기본 Rule 구현
-- [ ]  PASS / FAIL / UNKNOWN 판정
-- [ ]  EligibilityResult 저장/API
+- [x]  UserProfile ↔ PolicyCondition Mapping 규칙 구현
+- [x]  연령·지역·거주기간·소득·학력·취업 기본 Rule 구현
+- [x]  PASS / FAIL / UNKNOWN 판정
+- [ ]  EligibilityResult 저장/API — API는 구현됨. judgement_run 결과 영속 저장 경로가 확인되지 않아 미체크.
 
 #### 9/15 ~ 9/16
 
-- [ ]  FUTURE_PASS 계산기 구현
-- [ ]  age / residence 등 날짜 기반 예상 충족일 계산
-- [ ]  Source Evidence 전달
+- [x]  FUTURE_PASS 계산기 구현
+- [x]  age / residence 등 날짜 기반 예상 충족일 계산
+- [x]  Source Evidence 전달
 
 #### 9/17
 
-- [ ]  AI Response Validation
-- [ ]  Timeout / Parsing 실패 예외처리
-- [ ]  FE 통합 테스트
+- [x]  AI Response Validation
+- [x]  Timeout / Parsing 실패 예외처리
+- [ ]  FE 통합 테스트 — BE CI의 CORS 검사와 실제 FE 브라우저 통합은 별개.
 
 ### 🤖 AI
 
@@ -356,22 +360,22 @@ v3.0 원칙: **v2.0의 짧고 현실적인 일정 + v1.0의 명확한 기술 책
 
 #### 9/18 ~ 9/19
 
-- [ ]  AIQuestion 조회 API
-- [ ]  UserAnswer 저장 API
-- [ ]  답변을 UserProfile/Context에 반영
+- [x]  AIQuestion 조회 API
+- [x]  UserAnswer 저장 API — 별도 답변 엔드포인트 대신 세션 PUT의 profile.answers로 저장.
+- [x]  답변을 UserProfile/Context에 반영
 
 #### 9/20
 
-- [ ]  증분 재판정 Pipeline
-- [ ]  이전/현재 판정 Version 관리
+- [ ]  증분 재판정 Pipeline — 현재는 답변을 반영한 전체 재판정. 증분 처리는 명시적으로 미도입.
+- [ ]  이전/현재 판정 Version 관리 — snapshot_version/ETag는 있지만 사용자별 판정 이력 관리와 다름.
 
 #### 9/21 ~ 9/22
 
-- [ ]  PolicyConflict 저장
-- [ ]  Conflict Matrix 생성
-- [ ]  동시에 받을 수 없는 조합 제거
-- [ ]  P0용 단순 최대혜택 조합 계산
-- [ ]  Combination API
+- [x]  PolicyConflict 저장 — 정책 JSON/스냅샷에 보존. DB 쓰기 경로 완료를 뜻하지 않음.
+- [x]  Conflict Matrix 생성
+- [x]  동시에 받을 수 없는 조합 제거
+- [x]  P0용 단순 최대혜택 조합 계산
+- [x]  Combination API
 
 ### 💻 Frontend
 
@@ -429,18 +433,18 @@ v3.0 원칙: **v2.0의 짧고 현실적인 일정 + v1.0의 명확한 기술 책
 
 #### 9/23 ~ 9/24
 
-- [ ]  RequiredDocument 저장/조회
-- [ ]  P0용 주요 서류 발급기간 Master 구성
+- [x]  RequiredDocument 저장/조회 — 정책/서류 마스터 파일과 계획 API 기준.
+- [x]  P0용 주요 서류 발급기간 Master 구성
 
 #### 9/25
 
-- [ ]  신청 마감일 - 발급 소요일 - 안전 Buffer 방식의 일정 역산
-- [ ]  ApplicationSchedule API
+- [x]  신청 마감일 - 발급 소요일 - 안전 Buffer 방식의 일정 역산
+- [x]  ApplicationSchedule API
 
 #### 9/26
 
-- [ ]  전체 로그/Error Handling 정리
-- [ ]  핵심 E2E 데이터 흐름 점검
+- [x]  전체 로그/Error Handling 정리
+- [x]  핵심 E2E 데이터 흐름 점검 — BE TestClient·고정 데이터 CI 기준. FE 브라우저/배포 통합은 미완료.
 
 ### 💻 Frontend
 

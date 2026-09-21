@@ -61,6 +61,24 @@ try {
   };
   await send('Page.enable');
   await send('Runtime.enable');
+  if (process.env.YPC_BROWSER_MODE === 'api') {
+    const base = process.env.YPC_BROWSER_URL || 'http://127.0.0.1:5174/FE/';
+    await send('Emulation.setDeviceMetricsOverride', { width: 1280, height: 800, deviceScaleFactor: 1, mobile: false });
+    await send('Page.navigate', { url: base + '#/results' });
+    await until("Boolean(document.querySelector('.api-mode main a[href=\"#/profile\"]'))");
+    assert.equal(await evaluate("document.querySelector('.summary-card') === null"), true, 'API mode must not show demo results');
+    await screenshot('api-start');
+    await evaluate("document.querySelector('main a[href=\"#/profile\"]').click()");
+    await until("Boolean(document.querySelector('#pf-birth_date:not(:disabled)'))");
+    await screenshot('api-profile');
+    const cors = await evaluate(`fetch('https://be-27y9.onrender.com/v1/judge?include=all', {method:'POST',headers:{'Content-Type':'application/json'},body:'{}'}).then(r=>({connected:true,status:r.status})).catch(e=>({connected:false,message:e.message}))`);
+    console.log('Actual browser API access:', JSON.stringify(cors));
+    await send('Page.navigate', { url: base + 'profile.html' });
+    await until("location.hash === '#/profile' && Boolean(document.querySelector('#pf-form'))");
+    assert.equal(await evaluate("location.pathname.endsWith('/FE/')"), true);
+    assert.deepEqual(exceptions, []);
+    console.log(`API build startup/subpath checks passed. Browser API access=${cors.connected}; screenshots: ${output}`);
+  } else {
   await send('Emulation.setDeviceMetricsOverride', { width: 1280, height: 680, deviceScaleFactor: 1.25, mobile: false });
   await send('Page.navigate', { url: 'http://127.0.0.1:5173/#/results' });
   await until("Boolean(document.querySelector('#editProfile'))");
@@ -101,6 +119,7 @@ try {
   await until("location.hash === '#/profile' && Boolean(document.querySelector('#profileOverlay.open'))");
   assert.deepEqual(exceptions, [], 'No unhandled browser exceptions');
   console.log(`Browser checks passed. Screenshots: ${output}`);
+  }
 } finally {
   socket?.close();
   chrome.kill();

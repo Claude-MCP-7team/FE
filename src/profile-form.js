@@ -14,7 +14,7 @@ function renderField(key, required, options, server) {
   else control = `<input ${attrs} type="text" inputmode="numeric" autocomplete="off" placeholder="모르면 비워두세요">`;
   return `<div class="pf-field"><label for="pf-${key}">${labels[key]}${required ? ' <span class="pf-required">(필수)</span>' : ''}</label>${control}<small id="pf-${key}-hint">${hint}</small><span class="pf-error" id="pf-${key}-error"></span></div>`;
 }
-export function mountProfile(container, { server = apiBase !== null, repository = null } = {}) {
+export function mountProfile(container, { server = apiBase !== null, repository = null, onSaved = null, onDeleted = null } = {}) {
   const options = server ? serverChoices : choices;
   const field = (key, required = false) => renderField(key, key === 'residence_start_date' && server ? false : required, options, server);
   container.innerHTML = `<section class="pf-page" aria-labelledby="pf-title"><p class="pf-eyebrow">내 조건 관리</p><h1 id="pf-title">나에게 맞는 정책을 찾기 위한 첫 단계</h1><p class="pf-intro">공통 조건을 먼저 입력해 주세요. 정책별로 필요한 추가 정보는 나중에 확인해요.</p><p class="pf-notice">입력한 조건은 이 탭에만 임시 보관됩니다. 서버 저장·정책 판정은 아직 연결되지 않았어요. 탭을 닫으면 임시 조건이 사라집니다.</p><form id="pf-form" novalidate><div class="pf-errors" id="pf-errors" tabindex="-1" role="alert" hidden></div><fieldset><legend>기본 정보</legend><div class="pf-grid">${field('birth_date', true)}${field('region', true)}${field('residence_start_date', true)}</div></fieldset><fieldset><legend>학업 및 취업</legend><div class="pf-grid">${field('education')}${field('employment_status')}${field('employment_type')}${field('personal_income')}</div></fieldset><fieldset><legend>가구 및 수혜 정보</legend><div class="pf-grid">${field('household_income')}${field('household_size')}${field('marital_status')}${field('policy_history')}</div><p class="pf-footnote">참여 정책과 추가 답변은 정책·질문 목록이 준비되면 선택할 수 있어요. 이름·주민등록번호·상세주소는 입력하지 않습니다.</p></fieldset><div class="pf-actions"><button type="button" id="pf-cancel">수정 취소</button><button type="submit" class="pf-primary">입력 조건 임시 보관</button></div><p id="pf-status" role="status" aria-live="polite"></p><div class="pf-delete"><button type="button" id="pf-delete">임시 조건 삭제</button><span id="pf-confirm" hidden>입력 중인 내용과 임시 조건을 삭제할까요? <button type="button" id="pf-delete-yes">삭제</button><button type="button" id="pf-delete-no">취소</button></span></div></form></section>`;
@@ -28,7 +28,7 @@ export function mountProfile(container, { server = apiBase !== null, repository 
   let busy = false;
   let loaded = !server;
   if (server) {
-    container.querySelector('.pf-notice').textContent = '입력한 조건을 서버에 저장합니다. 이 탭을 닫으면 저장된 조건에 다시 접근할 수 없으므로, 삭제하려면 탭을 닫기 전에 삭제해 주세요. 정책 결과는 예시이며 자동 재판정되지 않습니다.';
+    container.querySelector('.pf-notice').textContent = '입력한 조건을 서버에 저장합니다. 저장 후 분석을 시작할 수 있어요. 이 탭을 닫으면 저장된 조건에 다시 접근할 수 없으므로, 삭제하려면 탭을 닫기 전에 삭제해 주세요.';
     submit.textContent = '입력 조건 서버 저장';
     container.querySelector('#pf-delete').textContent = '서버 조건 삭제';
     container.querySelector('#pf-confirm').firstChild.textContent = '서버의 조건과 답변을 삭제할까요? ';
@@ -87,7 +87,7 @@ export function mountProfile(container, { server = apiBase !== null, repository 
       errorBox.hidden = false; errorBox.focus(); status.textContent = ''; return;
     }
     setBusy(true);
-    try { saved = server ? await repository.save(value) : saveDraft(window.sessionStorage, value); populate(saved); status.textContent = server ? '서버에 조건을 저장했어요. 정책 결과는 예시이며 자동 재판정되지 않습니다.' : '이 탭에 조건을 임시 보관했어요. 정책 결과는 예시이며 이 조건으로 재판정되지 않습니다.'; }
+    try { saved = server ? await repository.save(value) : saveDraft(window.sessionStorage, value); populate(saved); status.textContent = server ? '서버에 조건을 저장했어요. 저장한 조건으로 분석을 시작할 수 있습니다.' : '이 탭에 조건을 임시 보관했어요. 정책 결과는 예시이며 이 조건으로 재판정되지 않습니다.'; onSaved?.(saved); }
     catch (error) { failure(server ? (error.code === 'PROFILE_MAPPING_REQUIRED' ? '현재 서버에 저장할 수 없는 항목이 있어요. 소득·근로 형태·정책 참여 이력 또는 선택한 학력·취업·혼인·지역 항목을 확인해 주세요. 입력 내용은 유지됩니다.' : '서버 저장에 실패했어요. 입력 내용은 유지됩니다. 다시 시도해 주세요.') : '임시 보관에 실패했어요. 브라우저 저장 설정을 확인한 뒤 다시 시도해 주세요. 입력한 내용은 유지됩니다.'); }
     finally { setBusy(false); }
   });
@@ -99,7 +99,7 @@ export function mountProfile(container, { server = apiBase !== null, repository 
   container.querySelector('#pf-delete-yes').addEventListener('click', async () => {
     if (busy) return;
     setBusy(true);
-    try { if (server) { await repository.remove(); loaded = true; retry.hidden = true; } else removeDraft(window.sessionStorage); saved = null; populate(null); clearErrors(); confirm.hidden = true; status.textContent = server ? '서버의 조건과 답변을 삭제했어요.' : '이 탭의 임시 조건을 삭제했어요.'; }
+    try { if (server) { await repository.remove(); loaded = true; retry.hidden = true; } else removeDraft(window.sessionStorage); saved = null; populate(null); clearErrors(); confirm.hidden = true; status.textContent = server ? '서버의 조건과 답변을 삭제했어요.' : '이 탭의 임시 조건을 삭제했어요.'; onDeleted?.(); }
     catch { failure(server ? '서버 삭제에 실패했어요. 조건과 세션을 유지합니다. 다시 시도해 주세요.' : '임시 조건을 삭제하지 못했어요. 브라우저 저장 설정을 확인해 주세요.'); }
     finally { setBusy(false); container.querySelector('#pf-delete').focus(); }
   });
