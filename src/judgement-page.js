@@ -20,14 +20,17 @@ const policyName = result => result.title?.trim()
   : `<code class="policy-ref">${escape(result.policy_id)}</code>`;
 const badge = status => `<span class="badge ${status}">${escape(conditionLabels[status] ?? status)}</span>`;
 
-export function renderJudgementDashboard(view, { onDetail = id => `#/policies/${encodeURIComponent(id)}` } = {}) {
+export function renderJudgementDashboard(view, { filter = 'all', onDetail = id => `#/policies/${encodeURIComponent(id)}` } = {}) {
   const summary = view.summary;
   const futureCount = summary.future_eligible ?? 0;
-  return `<div class="hero"><span class="eyebrow">실제 판정 결과</span><h1>내 조건에 맞는 정책</h1><p class="muted">${escape(view.disclaimer)}</p></div><div class="summary judgement-summary"><article>${statuses.PASS.label}<strong>${summary.eligible}<small>개</small></strong></article><article>${statuses.FAIL.label}<strong>${summary.ineligible - futureCount}<small>개</small></strong></article><article>${statuses.UNKNOWN.label}<strong>${summary.needs_info}<small>개</small></strong></article><article>${statuses.FUTURE_PASS.label}<strong>${futureCount}<small>개</small></strong></article></div><div class="grid">${view.results.map(result => {
+  const activeFilter = Object.hasOwn(statuses, filter) ? filter : 'all';
+  const selected = view.results.filter(result => activeFilter === 'all' || result.status === activeFilter);
+  const filters = `<div class="filters" aria-label="판정 상태 필터">${[['all', '전체'], ...Object.entries(statuses).map(([key, value]) => [key, value.label])].map(([key, label]) => `<button data-filter="${key}" aria-pressed="${activeFilter === key}">${label}</button>`).join('')}</div><p role="status">${selected.length}개 정책</p>`;
+  return `<div class="hero"><span class="eyebrow">실제 판정 결과</span><h1>내 조건에 맞는 정책</h1><p class="muted">${escape(view.disclaimer)}</p></div><div class="summary judgement-summary"><article>${statuses.PASS.label}<strong>${summary.eligible}<small>개</small></strong></article><article>${statuses.FAIL.label}<strong>${summary.ineligible - futureCount}<small>개</small></strong></article><article>${statuses.UNKNOWN.label}<strong>${summary.needs_info}<small>개</small></strong></article><article>${statuses.FUTURE_PASS.label}<strong>${futureCount}<small>개</small></strong></article></div>${filters}<div class="grid">${selected.map(result => {
     const note = confidenceNotes[result.confidence];
     const confidence = note ? `<p class="muted">${note}</p>` : '';
     return `<article class="card judgement-card"><div>${verdictBadge(result.status)} ${chip(result.confidence)}</div><h2>${policyName(result)}</h2>${futureFrom(result)}${confidence}<p>${escape(result.explanation ?? '정책 조건을 확인해 주세요.')}</p><a class="button" href="${onDetail(result.policy_id)}">판정 근거 보기</a></article>`;
-  }).join('') || '<p class="card">표시할 판정 결과가 없습니다.</p>'}</div>`;
+  }).join('') || (view.results.length ? '<p class="card">해당 상태의 정책이 없습니다. 다른 필터를 선택하세요.</p>' : '<p class="card">표시할 판정 결과가 없습니다.</p>')}</div>`;
 }
 
 export function renderJudgementDetail(result) {

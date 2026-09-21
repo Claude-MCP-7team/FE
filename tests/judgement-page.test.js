@@ -6,6 +6,42 @@ import { renderJudgementDashboard, renderJudgementDetail } from '../src/judgemen
 
 const fixture = JSON.parse(await readFile(new URL('./fixtures/judgement.json', import.meta.url), 'utf8'));
 
+test('live filters select policy status without changing summary totals', () => {
+  const view = toJudgementView(structuredClone(fixture));
+  for (const filter of ['PASS', 'FAIL', 'UNKNOWN']) {
+    const html = renderJudgementDashboard(view, { filter });
+    const expected = view.results.filter(result => result.status === filter);
+    assert.equal(expected.length, 1);
+    assert.match(html, new RegExp(`data-filter="${filter}" aria-pressed="true"`));
+    assert.match(html, /role="status">1개 정책/);
+    for (const result of view.results) {
+      assert.equal(html.includes(`href="#/policies/${result.policy_id}"`), result.status === filter);
+    }
+    assert.match(html, /신청 가능<strong>1/);
+    assert.match(html, /조건 미충족<strong>1/);
+    assert.match(html, /추가 확인<strong>1/);
+  }
+  const missing = renderJudgementDashboard(view, { filter: 'FUTURE_PASS' });
+  assert.match(missing, /해당 상태의 정책이 없습니다/);
+  assert.match(missing, /role="status">0개 정책/);
+  const fallback = renderJudgementDashboard(view, { filter: 'not-a-status' });
+  assert.match(fallback, /data-filter="all" aria-pressed="true"/);
+  assert.match(fallback, /role="status">3개 정책/);
+});
+
+test('future filter uses the policy date, not a future condition on a failed policy', () => {
+  const response = structuredClone(fixture);
+  const undated = toJudgementView(response);
+  assert.match(renderJudgementDashboard(undated, { filter: 'FUTURE_PASS' }), /0개 정책/);
+  response.results[1].unmatched[1].permanently_unsatisfiable = false;
+  response.results[1].unmatched[1].satisfiable_from = '2028-03-01';
+  response.results[1].future_eligible_from = '2028-03-01';
+  response.summary.future_eligible = 1;
+  const dated = toJudgementView(response);
+  assert.match(renderJudgementDashboard(dated, { filter: 'FUTURE_PASS' }), /href="#\/policies\/TEST-INELIGIBLE"/);
+  assert.doesNotMatch(renderJudgementDashboard(dated, { filter: 'FAIL' }), /href="#\/policies\/TEST-INELIGIBLE"/);
+});
+
 test('dashboard renders live verdict counts, confidence and escaped policy identifiers', () => {
   const view = toJudgementView(structuredClone(fixture));
   const html = renderJudgementDashboard(view);
