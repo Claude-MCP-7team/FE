@@ -2,16 +2,22 @@
    두 화면이 각자 색을 들고 있으면 같은 서비스가 다른 제품처럼 보인다.
    기준 문서는 docs/Design-system.md, 피그마용 사본은 docs/design-tokens.json. */
 :root{
-  --green:#135f3c;
-  --ink:#17221c;
-  --ink-muted:#59675f;
-  --chip-ink:#4f5c54;
-  --bg:#f5f7f3;
+  --brand:#5B8DEF;
+  --primary:#4778D8;
+  --dark-brand:#18243B;
+  --secondary:#759FF0;
+  --green:var(--brand);
+  --lime:#C7D8FF;
+  --mint:#E7EFFF;
+  --ink:#18202C;
+  --ink-muted:#727B88;
+  --chip-ink:#727B88;
+  --bg:#F4F7FD;
   --surface:#ffffff;
-  --line:#dfe5df;        /* 장식용: 카드 테두리, 구분선 */
+  --line:#DCE3EE;        /* 장식용: 카드 테두리, 구분선 */
   --line-strong:#7d8f84; /* 기능용: 입력·버튼·칩 테두리. 흰 배경 대비 3.42 */
-  --focus:#41667a;
-  --pass-ink:#135f3c;--pass-bg:#dceee2;
+  --focus:#4778D8;
+  --pass-ink:#4778D8;--pass-bg:#E7EFFF;
   --fail-ink:#993d36;--fail-bg:#fae9e6;
   --unknown-ink:#775013;--unknown-bg:#fff3dc;
   --future-ink:#325975;--future-bg:#e5edf8;

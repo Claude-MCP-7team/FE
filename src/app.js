@@ -11,6 +11,9 @@ import { createJudgementRunner } from './judgement-runner.js';
 import { mountQuestions } from './question-page.js';
 import { mountCombinations } from './combination-page.js';
 import { mountPlan } from './plan-page.js';
+import { renderReferenceDashboard, mountReferenceDashboard } from './dashboard.js';
+const legacyRoutes = { '#dashboard': '#/results', '#combination': '#/combinations', '#schedule': '#/schedule', '#profile': '#/profile' };
+if (legacyRoutes[location.hash]) history.replaceState(null, '', legacyRoutes[location.hash]);
 const main = document.querySelector('main');
 let data;
 let filter = 'all';
@@ -19,12 +22,15 @@ let judgementRunner;
 let questionMount;
 let combinationMount;
 let planMount;
+let dashboardMount;
+const referencePages = ['results', 'profile', 'questions', 'combinations', 'schedule'];
+const usesReference = page => apiBase === null && referencePages.includes(page);
 const badge = status => `<span class="badge ${status}">${statuses[status].symbol} ${statuses[status].label}</span>`;
 const link = (href, text) => `<a class="button" href="#/${href}">${text}</a>`;
 const heading = (title, description) => `<div class="hero"><span class="eyebrow">나에게 맞는 다음 단계</span><h1>${title}</h1><p class="muted">${description}</p></div>`;
 const policy = id => data.policies.find(p => p.policy_id === id);
 function results() {
-  if (liveJudgement) return renderJudgementDashboard(liveJudgement);
+  if (liveJudgement) return renderJudgementDashboard(liveJudgement, { filter });
   const selected = data.results.filter(result => filter === 'all' || result.status === filter);
   return heading('청년정책, 가능성부터 실행까지', '내 조건에 따른 결과와 이유를 확인하는 화면입니다. 기준일: 2026-09-12 · 예시 프로필') +
     `<div class="summary">${Object.entries(statuses).map(([key, value]) => `<article>${value.label}<strong>${data.results.filter(r => r.status === key).length}<small>개</small></strong></article>`).join('')}</div>` +
@@ -61,8 +67,16 @@ function analysis() {
   return heading('분석을 시작할 준비가 되었어요', message) + `<section class="card"><p id="analysis-status" role="status" aria-live="polite">${pending ? '판정 결과를 불러오는 중이에요.' : ''}</p><button class="primary" data-analyze ${apiBase === null || pending ? 'disabled' : ''}>${pending ? '판정 중…' : '내 조건 분석하기'}</button></section>`;
 }
 function renderPage(loadedData) {
+  dashboardMount?.destroy();
+  dashboardMount = null;
   data = loadedData;
   const { page, id } = parseRoute(location.hash);
+  if (usesReference(page)) {
+    main.innerHTML = renderReferenceDashboard();
+    dashboardMount = mountReferenceDashboard(main, { page });
+    updatePageMeta();
+    return;
+  }
   const pages = { results, profile, questions, combinations, schedule, policies: () => detail(id), analysis };
   main.innerHTML = (Object.hasOwn(pages, page) ? pages[page] : missing)();
   if (page === 'profile') mountProfile(main.querySelector('#profile-content'));
@@ -97,7 +111,7 @@ function updatePageMeta() {
   document.title = `${main.querySelector('h1')?.textContent ?? '정책 결과'} · YouthFit AI`;
 }
 const loader = createPageLoader({
-  needsData: () => ['results', 'policies', 'questions', 'combinations', 'schedule'].includes(parseRoute(location.hash).page),
+  needsData: () => !usesReference(parseRoute(location.hash).page) && ['results', 'policies', 'questions', 'combinations', 'schedule'].includes(parseRoute(location.hash).page),
   renderPage,
   renderLoading: () => {
     main.innerHTML = '<div class="state" role="status">예시 정책 데이터를 불러오고 있습니다…</div>';
@@ -119,6 +133,7 @@ main.addEventListener('click', event => {
   if (target?.hasAttribute('data-retry')) loader.load();
   if (target?.hasAttribute('data-analyze')) startJudgement();
 });
+document.querySelector('.profile').addEventListener('click', () => { location.hash = '#/profile'; });
 function startJudgement() {
   if (apiBase === null || judgementRunner?.pending) return;
   if (!judgementRunner) {
@@ -152,7 +167,9 @@ window.addEventListener('hashchange', () => {
   if (parseRoute(location.hash).page !== 'questions') questionMount?.cancel();
   if (parseRoute(location.hash).page !== 'combinations') combinationMount?.cancel();
   if (parseRoute(location.hash).page !== 'schedule') planMount?.cancel();
-  loader.show(); main.focus(); window.scrollTo(0, 0);
+  window.scrollTo(0, 0);
+  loader.show();
+  if (!main.querySelector('.overlay.open')) main.focus({ preventScroll: true });
 });
 loader.show();
 loader.load();

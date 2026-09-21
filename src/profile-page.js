@@ -1,2 +1,2 @@
-import { mountProfile } from './profile-form.js';
-mountProfile(document.querySelector('#profile-content'));
+// Keep old bookmarks on the same profile route and dashboard design.
+location.replace('/#/profile');
