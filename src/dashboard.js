@@ -1,4 +1,7 @@
-import { dashboardTemplate } from './dashboard-template.js';
+import { dashboardTemplate, renderLiveDashboard } from './dashboard-template.js';
+import { escape } from './dom.js';
+import { chip, confidenceLabels } from './confidence.js';
+import { statuses } from './contracts.js';
 
 const draftKey = 'ypc.reference-profile.v1';
 export const renderReferenceDashboard = () => dashboardTemplate;
@@ -157,4 +160,155 @@ export function mountReferenceDashboard(root, { page = 'results' } = {}) {
   if (page === 'combinations') find('#combination').scrollIntoView();
   if (page === 'schedule') find('#schedule').scrollIntoView();
   return { destroy() { controller.abort(); clearTimeout(timer); close(false); } };
+}
+
+// "최대 혜택 기준" means the highest total across scenarios, not the first
+// scenario BE happens to list. Each scenario's combinations are pre-ranked, so
+// its own combinations[0] is that scenario's best; compare those across
+// scenarios instead of trusting response order (conservative can precede
+// maximal and still be picked otherwise).
+function bestCombination(response) {
+  const candidates = response.scenarios.map(scenario => scenario.combinations[0]).filter(Boolean);
+  if (!candidates.length) return null;
+  const best = candidates.reduce((top, candidate) => (candidate.total_krw > top.total_krw ? candidate : top));
+  return { totalKrw: best.total_krw, totalIsEstimated: best.total_is_estimated, members: best.members.map(member => member.title), combination: best };
+}
+
+function documentModel(document, checked) {
+  return { name: document.name, issuer: document.issuer, leadTime: document.lead_time_business_days, requiresVisit: document.requires_visit, masterUnverified: document.master_unverified, checked };
+}
+
+const dateText = value => (value ? value.replaceAll('-', '.').slice(5) : '확인 필요');
+function scheduleModel(plan) {
+  const note = plan.recommended_start_date ? `${dateText(plan.deadline_date)} 마감 · 이때까지 준비 시작` : plan.reason || '일정을 확인해 주세요.';
+  return { date: dateText(plan.recommended_start_date ?? plan.deadline_date), title: plan.title, note };
+}
+
+const conditionStatusClass = { PASS: 'ok', FAIL: 'bad', UNKNOWN: 'ask', FUTURE_PASS: 'ok' };
+function detailBody(result) {
+  const conditions = result.conditions.map(condition => `<div class="condition"><b>${escape(condition.field)}</b><span class="${conditionStatusClass[condition.status] ?? ''}">${statuses[condition.status].symbol} ${escape(statuses[condition.status].label)}</span><span>${escape(condition.evidence.quote)}${condition.status === 'FUTURE_PASS' && condition.satisfiable_from ? ` · 예상 충족일 ${escape(condition.satisfiable_from)}` : ''}${condition.status === 'FAIL' && condition.permanently_unsatisfiable ? ' · 시간이 지나도 충족할 수 없어요' : ''}</span></div>`).join('') || '<p class="muted">조건 상세가 없어요.</p>';
+  const contact = result.confidence === 'CONFIRMED' ? '' : `<div class="source"><b>확인이 필요해요</b><br>${escape(result.dept_name)} · ${escape(result.dept_tel)}로 최종 확인해 주세요.</div>`;
+  const confidenceText = result.confidence === 'CONFIRMED' ? '확정' : escape(confidenceLabels[result.confidence] ?? result.confidence);
+  return `<div class="detail-summary"><div><span>판정 신뢰도</span><strong>${confidenceText}</strong></div><div><span>확인된 조건</span><strong>${result.conditions.length}건</strong></div><div><span>원문 근거</span><strong>${result.conditions.filter(c => c.evidence?.quote).length}건 연결</strong></div></div><h3>조건별 판정과 원문 근거</h3><div class="conditions">${conditions}</div>${contact}`;
+}
+
+function comboBody(combination) {
+  const members = combination.members.map(member => `<div class="condition"><b>${escape(member.title)}</b><span class="ok">${new Intl.NumberFormat('ko-KR').format(member.estimated_total_krw)}원${member.amount_estimated ? ' (미확정)' : ''}</span><span></span></div>`).join('');
+  const excluded = combination.excluded.length
+    ? `<div class="source"><b>함께 받을 수 없는 정책</b><br>${combination.excluded.map(item => `${escape(item.title)} — ${escape(item.conflicts_with_title)}와 충돌 ${chip(item.confidence)}`).join('<br>')}</div>`
+    : '<div class="source">확인된 충돌 조건이 없어요. 최종 신청 전 각 운영기관 확인을 권장합니다.</div>';
+  return `<div class="detail-summary"><div><span>예상 총 혜택</span><strong>${new Intl.NumberFormat('ko-KR').format(combination.total_krw)}원${combination.total_is_estimated ? ' (미확정 포함)' : ''}</strong></div><div><span>조합 정책</span><strong>${combination.members.length}개</strong></div><div><span>제외 정책</span><strong>${combination.excluded.length}개</strong></div></div><div class="conditions">${members}</div>${excluded}`;
+}
+
+// Same shell as mountReferenceDashboard, fed by live judgement/combination/plan data
+// instead of the fixed demo. Combination and plan load independently of judgement so
+// a slow or failed side panel never blocks the policy list the user came here for.
+export function mountLiveDashboard(root, { judgement, filter: initialFilter = 'all', profileApi, combinationApi, planApi, onReanalyze, onFilterChange } = {}) {
+  const controller = new AbortController();
+  const { signal } = controller;
+  let filter = initialFilter;
+  let combination = { state: 'loading' };
+  let documents = { state: 'loading', items: [] };
+  let plan = { state: 'loading' };
+  const checkedDocuments = new Set();
+
+  const render = () => {
+    root.innerHTML = renderLiveDashboard({ judgement, filter, combination, documents, plan });
+    bind();
+  };
+
+  const openOverlay = id => {
+    const overlay = root.querySelector(`#${id}`);
+    root.querySelectorAll('.overlay').forEach(el => el.classList.remove('open'));
+    overlay.classList.add('open');
+    document.body.style.overflow = 'hidden';
+    const modal = overlay.querySelector('.modal');
+    modal.tabIndex = -1;
+    modal.focus({ preventScroll: true });
+  };
+  const closeOverlays = () => {
+    root.querySelectorAll('.overlay').forEach(el => el.classList.remove('open'));
+    document.body.style.overflow = '';
+  };
+
+  function bind() {
+    root.querySelectorAll('[data-reference-filter]').forEach(button => button.addEventListener('click', () => {
+      filter = button.dataset.referenceFilter;
+      onFilterChange?.(filter);
+      render();
+    }));
+    root.querySelectorAll('.detail-btn').forEach(button => button.addEventListener('click', () => {
+      const result = judgement.results.find(item => item.policy_id === button.dataset.policyId);
+      if (!result) return;
+      root.querySelector('#detailTitle').textContent = result.title?.trim() || result.policy_id;
+      root.querySelector('#detailBadge').className = `badge ${{ PASS: 'pass', FAIL: 'fail', UNKNOWN: 'ask', FUTURE_PASS: 'future' }[result.status] ?? 'ask'}`;
+      root.querySelector('#detailBadge').textContent = `${statuses[result.status].symbol} ${statuses[result.status].label}`;
+      root.querySelector('#detailBody').innerHTML = detailBody(result);
+      openOverlay('detailOverlay');
+    }));
+    root.querySelector('#comboBtn')?.addEventListener('click', () => {
+      if (combination.best) { root.querySelector('#comboBody').innerHTML = comboBody(combination.best.combination); openOverlay('comboOverlay'); }
+    });
+    root.querySelector('#rerun')?.addEventListener('click', () => onReanalyze?.());
+    root.querySelectorAll('[data-close], .overlay').forEach(el => el.addEventListener('click', event => {
+      if (event.target === el || el.hasAttribute('data-close')) closeOverlays();
+    }));
+    root.querySelectorAll('[data-document-check]').forEach(input => input.addEventListener('change', () => {
+      const index = Number(input.dataset.documentCheck);
+      if (input.checked) checkedDocuments.add(index); else checkedDocuments.delete(index);
+      documents = { ...documents, items: documents.items.map((item, itemIndex) => itemIndex === index ? { ...item, checked: input.checked } : item) };
+      render();
+    }));
+    root.querySelector('[data-combo-retry]')?.addEventListener('click', loadCombination);
+    root.querySelector('[data-plan-retry]')?.addEventListener('click', loadPlan);
+  }
+
+  async function loadCombination() {
+    combination = { state: 'loading' };
+    render();
+    try {
+      const profile = await profileApi.get();
+      if (!profile) throw new Error('저장된 조건이 없어요.');
+      const response = await combinationApi.list(profile, { sessionId: profileApi.sessionId, signal });
+      if (signal.aborted) return;
+      const best = bestCombination(response);
+      combination = best ? { state: 'ready', best } : { state: 'empty' };
+    } catch (error) {
+      if (!signal.aborted) combination = { state: 'error', message: error.message };
+    }
+    render();
+  }
+
+  async function loadPlan() {
+    plan = { state: 'loading' };
+    documents = { state: 'loading', items: [] };
+    render();
+    try {
+      const profile = await profileApi.get();
+      if (!profile) throw new Error('저장된 조건이 없어요.');
+      const response = await planApi.list(profile, { sessionId: profileApi.sessionId, signal });
+      if (signal.aborted) return;
+      plan = { state: 'ready', items: response.plans.map(scheduleModel) };
+      documents = { state: 'ready', items: response.documents.map((document, index) => documentModel(document, checkedDocuments.has(index))) };
+    } catch (error) {
+      if (!signal.aborted) { plan = { state: 'error', message: error.message }; documents = { state: 'error', message: error.message }; }
+    }
+    render();
+  }
+
+  document.addEventListener('keydown', event => {
+    const modal = root.querySelector('.overlay.open');
+    if (!modal) return;
+    if (event.key === 'Escape') { event.preventDefault(); closeOverlays(); return; }
+    if (event.key !== 'Tab') return;
+    const controls = [...modal.querySelectorAll('button, input, select, a[href]')].filter(el => !el.disabled && el.getClientRects().length);
+    const first = controls[0], last = controls.at(-1);
+    if (event.shiftKey && document.activeElement === first) { event.preventDefault(); last?.focus(); }
+    else if (!event.shiftKey && (document.activeElement === last || document.activeElement === modal.querySelector('.modal'))) { event.preventDefault(); first?.focus(); }
+  }, { signal });
+
+  render();
+  loadCombination();
+  loadPlan();
+  return { destroy() { controller.abort(); closeOverlays(); } };
 }

@@ -1,3 +1,7 @@
+import { escape } from './dom.js';
+import { chip } from './confidence.js';
+import { statuses } from './contracts.js';
+
 // Reference: docs/assets/iamges. Demo values are not live eligibility results.
 export const dashboardTemplate = `<div class="reference-dashboard">
     <section class="hero">
@@ -169,3 +173,126 @@ export const dashboardTemplate = `<div class="reference-dashboard">
   <div class="toast" id="toast" role="status" aria-live="polite"></div>
 
 </div>`;
+
+// Live variant of the reference dashboard shell above. The mockup predates the
+// /v1/judge, /v1/combinations and /v1/plan clients and was built against fixed
+// demo numbers, so this renders the same layout from real API data instead.
+// Fields the mockup shows that those APIs do not return (benefit amount,
+// category, application deadline on a policy card) are left out rather than
+// invented — see docs/Design-states.md.
+const badgeClass = { PASS: 'pass', FAIL: 'fail', UNKNOWN: 'ask', FUTURE_PASS: 'future' };
+const filterOptions = [['all', '전체'], ['PASS', statuses.PASS.label], ['FUTURE_PASS', statuses.FUTURE_PASS.label], ['UNKNOWN', statuses.UNKNOWN.label]];
+const policyName = result => (result.title?.trim() ? escape(result.title) : `<code class="policy-ref">${escape(result.policy_id)}</code>`);
+const money = value => `${new Intl.NumberFormat('ko-KR').format(value)}원`;
+
+export function liveDashboardSummary(judgement) {
+  const summary = judgement.summary;
+  const future = summary.future_eligible ?? 0;
+  return { total: summary.eligible + summary.ineligible + summary.needs_info, pass: summary.eligible, future, ask: summary.needs_info };
+}
+
+export function liveFilteredResults(judgement, filter = 'all') {
+  return judgement.results.filter(result => filter === 'all' || result.status === filter);
+}
+
+function policyCard(result) {
+  const future = result.future_eligible_from ? `<span>예상 충족일 ${escape(result.future_eligible_from)}</span>` : '';
+  return `<article class="policy" data-status="${badgeClass[result.status] ?? 'ask'}" data-policy-id="${escape(result.policy_id)}">
+    <div><div class="policy-top"><span class="badge ${badgeClass[result.status] ?? 'ask'}">${statuses[result.status].symbol} ${escape(statuses[result.status].label)}</span>${chip(result.confidence)}</div><h3>${policyName(result)}</h3><div class="meta"><span>${escape(result.explanation || '정책 조건을 확인해 주세요.')}</span>${future}</div></div>
+    <div class="policy-side"><button class="detail-btn" type="button" data-policy-id="${escape(result.policy_id)}">판정 근거 보기 →</button></div>
+  </article>`;
+}
+
+function comboPanel(combo) {
+  if (combo.state === 'loading') return `<section class="panel combo" id="combination"><div class="panel-head"><h2>AI 추천 조합</h2></div><p class="combo-label">조합을 계산하는 중이에요…</p></section>`;
+  if (combo.state === 'error') return `<section class="panel combo" id="combination"><div class="panel-head"><h2>AI 추천 조합</h2></div><p class="combo-label">${escape(combo.message || '조합을 불러오지 못했어요.')}</p><button class="btn" type="button" data-combo-retry>다시 시도</button></section>`;
+  if (combo.state === 'empty' || !combo.best) return `<section class="panel combo" id="combination"><div class="panel-head"><h2>AI 추천 조합</h2></div><p class="combo-label">추천할 수 있는 조합이 아직 없어요.</p></section>`;
+  const best = combo.best;
+  return `<section class="panel combo" id="combination">
+    <div class="panel-head"><h2>AI 추천 조합</h2><span class="count">${best.totalIsEstimated ? '일부 금액 미확정' : '최대 혜택 기준'}</span></div>
+    <div class="combo-label">함께 받을 수 있는 조합</div><div class="combo-amount">${money(best.totalKrw)}</div>
+    <div class="combo-policies">${best.members.map((title, index) => `${index ? '<b>+</b>' : ''}<span>${escape(title)}</span>`).join('')}</div>
+    <button class="btn" type="button" id="comboBtn">중복수혜 분석 보기</button>
+  </section>`;
+}
+
+function documentsPanel(documents) {
+  if (documents.state === 'loading') return `<section class="panel" id="documents"><div class="panel-head"><h2>준비 서류</h2></div><p class="muted">서류를 불러오는 중이에요…</p></section>`;
+  if (documents.state === 'error') return `<section class="panel" id="documents"><div class="panel-head"><h2>준비 서류</h2></div><p class="muted">${escape(documents.message || '서류를 불러오지 못했어요.')}</p><button class="btn" type="button" data-plan-retry>다시 시도</button></section>`;
+  if (!documents.items.length) return `<section class="panel" id="documents"><div class="panel-head"><h2>준비 서류</h2></div><p class="muted">아직 필요한 서류가 없어요.</p></section>`;
+  const checked = documents.items.filter(item => item.checked).length;
+  const percent = Math.round((checked / documents.items.length) * 100);
+  return `<section class="panel" id="documents">
+    <div class="panel-head"><div><h2>준비 서류</h2><span class="count">${documents.items.length}개 중 ${checked}개 준비</span></div><div class="progress-ring"><span id="ringValue">${percent}%</span></div></div>
+    <div class="checklist">${documents.items.map((item, index) => `<div class="check-row${item.checked ? ' checked' : ''}"><input type="checkbox" id="doc${index}" data-document-check="${index}" ${item.checked ? 'checked' : ''}><label for="doc${index}">${escape(item.name)}${item.masterUnverified ? ' · 확인 필요' : ''}</label><span class="doc-note">${item.issuer ? escape(item.issuer) : '발급처 확인 필요'}${item.leadTime ? ` · ${item.leadTime}영업일` : ''}${item.requiresVisit ? ' · 방문 필요' : ''}</span></div>`).join('')}</div>
+  </section>`;
+}
+
+function schedulePanel(schedule) {
+  if (schedule.state === 'loading') return `<section class="panel" id="schedule"><div class="panel-head"><h2>다가오는 일정</h2></div><p class="muted">일정을 불러오는 중이에요…</p></section>`;
+  if (schedule.state === 'error') return `<section class="panel" id="schedule"><div class="panel-head"><h2>다가오는 일정</h2></div><p class="muted">${escape(schedule.message || '일정을 불러오지 못했어요.')}</p></section>`;
+  if (!schedule.items.length) return `<section class="panel" id="schedule"><div class="panel-head"><h2>다가오는 일정</h2></div><p class="muted">아직 신청 일정이 없어요.</p></section>`;
+  return `<section class="panel" id="schedule">
+    <div class="panel-head"><div><h2>다가오는 일정</h2><span class="count">마감일에서 역산했어요</span></div></div>
+    <ol class="timeline">${schedule.items.map(item => `<li><div class="date">${escape(item.date)}</div><div><strong>${escape(item.title)}</strong><span>${escape(item.note)}</span></div></li>`).join('')}</ol>
+  </section>`;
+}
+
+export function renderLiveDashboard(model) {
+  const summary = liveDashboardSummary(model.judgement);
+  const filter = model.filter ?? 'all';
+  const cards = liveFilteredResults(model.judgement, filter);
+  const needsInfo = summary.ask > 0
+    ? `<div class="question" id="questionBanner"><div class="question-icon">?</div><div><strong>${summary.ask}개 정책은 추가 정보가 필요해요.</strong><span>답변하면 즉시 다시 판정해요.</span></div><a class="btn small" href="#/questions">답변하러 가기</a></div>`
+    : '';
+  return `<div class="reference-dashboard">
+    <section class="hero">
+      <div>
+        <div class="eyebrow">My policy dashboard</div>
+        <h1>받을 수 있는 정책을<br>실행 계획으로 만들었어요.</h1>
+        <p>${escape(model.judgement.disclaimer)}</p>
+      </div>
+      <div class="hero-actions">
+        <a class="btn ghost" href="#/profile">조건 수정</a>
+        <button class="btn primary" type="button" id="rerun">AI 다시 분석</button>
+      </div>
+    </section>
+
+    <section class="summary" aria-label="분석 결과 요약">
+      <article class="summary-card main"><div class="label">분석한 정책</div><div class="value">${summary.total}개</div><div class="note">저장한 조건 기준</div></article>
+      <article class="summary-card"><div class="label">지금 신청 가능</div><div class="value">${summary.pass}</div></article>
+      <article class="summary-card"><div class="label">곧 신청 가능</div><div class="value">${summary.future}</div></article>
+      <article class="summary-card"><div class="label">추가 확인 필요</div><div class="value">${summary.ask}</div></article>
+    </section>
+
+    ${needsInfo}
+
+    <div class="layout">
+      <section class="panel">
+        <div class="panel-head"><div><h2>나에게 맞는 정책</h2><div class="count">${cards.length}개 정책</div></div></div>
+        <div class="filters" role="group" aria-label="정책 상태 필터">${filterOptions.map(([value, label]) => `<button class="filter${filter === value ? ' active' : ''}" data-reference-filter="${value}" aria-pressed="${filter === value}">${escape(label)}</button>`).join('')}</div>
+        <div class="policy-list" id="policyList">${cards.map(policyCard).join('') || '<p class="muted">해당 상태의 정책이 없어요.</p>'}</div>
+      </section>
+
+      <aside class="side">
+        ${comboPanel(model.combination)}
+        ${documentsPanel(model.documents)}
+        ${schedulePanel(model.plan)}
+      </aside>
+    </div>
+
+    <div class="overlay" id="detailOverlay" role="dialog" aria-modal="true" aria-labelledby="detailTitle">
+      <div class="modal"><div class="modal-head"><div><span class="badge pass" id="detailBadge">✓ 신청 가능</span><h2 id="detailTitle"></h2></div><button class="close" data-close aria-label="닫기">×</button></div>
+        <div id="detailBody"></div>
+      </div>
+    </div>
+
+    <div class="overlay" id="comboOverlay" role="dialog" aria-modal="true" aria-labelledby="comboTitle">
+      <div class="modal"><div class="modal-head"><div><span class="badge pass">✓ 조합 추천</span><h2 id="comboTitle">최대 혜택 조합 분석</h2></div><button class="close" data-close aria-label="닫기">×</button></div>
+        <div id="comboBody"></div>
+      </div>
+    </div>
+
+    <div class="toast" id="toast" role="status" aria-live="polite"></div>
+  </div>`;
+}

@@ -9,9 +9,11 @@ import { apiBase } from './runtime-config.js';
 import { renderJudgementDashboard, renderJudgementDetail } from './judgement-page.js';
 import { createJudgementRunner } from './judgement-runner.js';
 import { mountQuestions } from './question-page.js';
+import { createCombinationApi } from './combination-api.js';
 import { mountCombinations } from './combination-page.js';
+import { createPlanApi } from './plan-api.js';
 import { mountPlan } from './plan-page.js';
-import { renderReferenceDashboard, mountReferenceDashboard } from './dashboard.js';
+import { renderReferenceDashboard, mountReferenceDashboard, mountLiveDashboard } from './dashboard.js';
 const legacyRoutes = { '#dashboard': '#/results', '#combination': '#/combinations', '#schedule': '#/schedule', '#profile': '#/profile' };
 if (legacyRoutes[location.hash]) history.replaceState(null, '', legacyRoutes[location.hash]);
 const main = document.querySelector('main');
@@ -27,6 +29,13 @@ let planMount;
 let dashboardMount;
 const referencePages = ['results', 'profile', 'questions', 'combinations', 'schedule'];
 const usesReference = page => apiBase === null && referencePages.includes(page);
+const liveDashboardPages = ['results', 'combinations', 'schedule'];
+// Mirrors the reference dashboard once a live judgement exists, so the deployed
+// screen a user actually sees matches the Mock-mode design instead of the plain
+// fallback cards. Before any judgement has run, #/combinations and #/schedule keep
+// working on their own via mountCombinations/mountPlan below — they do not need a
+// prior /v1/judge call, only a saved profile.
+const usesLiveDashboard = page => apiBase !== null && liveJudgement !== null && liveDashboardPages.includes(page);
 const badge = status => `<span class="badge ${status}">${statuses[status].symbol} ${statuses[status].label}</span>`;
 const link = (href, text) => `<a class="button" href="#/${href}">${text}</a>`;
 const heading = (title, description) => `<div class="hero"><span class="eyebrow">나에게 맞는 다음 단계</span><h1>${title}</h1><p class="muted">${description}</p></div>`;
@@ -79,6 +88,19 @@ function renderPage(loadedData) {
     main.innerHTML = renderReferenceDashboard();
     dashboardMount = mountReferenceDashboard(main, { page });
     updatePageMeta();
+    return;
+  }
+  if (usesLiveDashboard(page)) {
+    dashboardMount = mountLiveDashboard(main, {
+      judgement: liveJudgement,
+      profileApi: createProfileApi({ baseUrl: apiBase }),
+      combinationApi: createCombinationApi({ baseUrl: apiBase }),
+      planApi: createPlanApi({ baseUrl: apiBase }),
+      onReanalyze: () => { location.hash = '#/analysis'; startJudgement(); },
+    });
+    updatePageMeta();
+    if (page === 'combinations') main.querySelector('#combination')?.scrollIntoView();
+    if (page === 'schedule') main.querySelector('#schedule')?.scrollIntoView();
     return;
   }
   const pages = { results, profile, questions, combinations, schedule, policies: () => detail(id), analysis };
