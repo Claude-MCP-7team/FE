@@ -65,6 +65,25 @@ test('combination and plan load independently and the panels reflect what each A
   assert.equal(planSignal.aborted, false);
 }));
 
+test('the combo panel picks the highest total across scenarios, not whichever scenario BE lists first', () => withFakeDocument(async () => {
+  const root = new FakeRoot();
+  const judgement = toJudgementView(structuredClone(fixture));
+  const profileApi = { sessionId: 's-1', get: async () => ({ core: {} }) };
+  const combinationApi = { list: async () => ({
+    snapshot_version: 'v1', eligible_count: 2, disclaimer: 'd',
+    scenarios: [
+      { kind: 'conservative', label: '보수', description: '', combinations: [{ rank: 1, total_krw: 500000, total_is_estimated: false, members: [{ policy_id: 'P1', title: '면접수당', estimated_total_krw: 500000, amount_estimated: false }], excluded: [] }] },
+      { kind: 'maximal', label: '최대', description: '', combinations: [{ rank: 1, total_krw: 1000000, total_is_estimated: false, members: [{ policy_id: 'P2', title: '구직촉진수당', estimated_total_krw: 1000000, amount_estimated: false }], excluded: [] }] },
+    ],
+  }) };
+  const planApi = { list: async () => new Promise(() => {}) };
+  mountLiveDashboard(root, { judgement, profileApi, combinationApi, planApi });
+  await new Promise(resolve => setImmediate(resolve));
+  assert.match(root.html, /1,000,000원/);
+  assert.match(root.html, /구직촉진수당/);
+  assert.doesNotMatch(root.html, /500,000원/);
+}));
+
 test('a missing profile surfaces as a normal error panel per side, not a thrown exception', () => withFakeDocument(async () => {
   const root = new FakeRoot();
   const judgement = toJudgementView(structuredClone(fixture));

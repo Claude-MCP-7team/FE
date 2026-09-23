@@ -162,10 +162,15 @@ export function mountReferenceDashboard(root, { page = 'results' } = {}) {
   return { destroy() { controller.abort(); clearTimeout(timer); close(false); } };
 }
 
+// "최대 혜택 기준" means the highest total across scenarios, not the first
+// scenario BE happens to list. Each scenario's combinations are pre-ranked, so
+// its own combinations[0] is that scenario's best; compare those across
+// scenarios instead of trusting response order (conservative can precede
+// maximal and still be picked otherwise).
 function bestCombination(response) {
-  const scenario = response.scenarios.find(item => item.combinations.length);
-  const best = scenario?.combinations[0];
-  if (!best) return null;
+  const candidates = response.scenarios.map(scenario => scenario.combinations[0]).filter(Boolean);
+  if (!candidates.length) return null;
+  const best = candidates.reduce((top, candidate) => (candidate.total_krw > top.total_krw ? candidate : top));
   return { totalKrw: best.total_krw, totalIsEstimated: best.total_is_estimated, members: best.members.map(member => member.title), combination: best };
 }
 
