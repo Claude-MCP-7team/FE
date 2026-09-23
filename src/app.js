@@ -15,6 +15,8 @@ import { renderReferenceDashboard, mountReferenceDashboard } from './dashboard.j
 const legacyRoutes = { '#dashboard': '#/results', '#combination': '#/combinations', '#schedule': '#/schedule', '#profile': '#/profile' };
 if (legacyRoutes[location.hash]) history.replaceState(null, '', legacyRoutes[location.hash]);
 const main = document.querySelector('main');
+document.body.classList.toggle('api-mode', apiBase !== null);
+if (apiBase !== null) document.querySelector('.profile').textContent = '내';
 let data;
 let filter = 'all';
 let liveJudgement = null;
@@ -31,6 +33,7 @@ const heading = (title, description) => `<div class="hero"><span class="eyebrow"
 const policy = id => data.policies.find(p => p.policy_id === id);
 function results() {
   if (liveJudgement) return renderJudgementDashboard(liveJudgement, { filter });
+  if (apiBase !== null) return heading('내 조건에 맞는 정책 찾기', '조건을 저장하고 분석하면 서버의 판정 결과와 근거를 확인할 수 있어요.') + `<section class="card"><div class="actions">${link('profile', '내 조건 입력·수정')}${link('analysis', '저장한 조건 분석하기')}</div></section>`;
   const selected = data.results.filter(result => filter === 'all' || result.status === filter);
   return heading('청년정책, 가능성부터 실행까지', '내 조건에 따른 결과와 이유를 확인하는 화면입니다. 기준일: 2026-09-12 · 예시 프로필') +
     `<div class="summary">${Object.entries(statuses).map(([key, value]) => `<article>${value.label}<strong>${data.results.filter(r => r.status === key).length}<small>개</small></strong></article>`).join('')}</div>` +
@@ -41,6 +44,7 @@ function results() {
 }
 function detail(id) {
   if (liveJudgement) return renderJudgementDetail(liveJudgement.results.find(result => result.policy_id === id));
+  if (apiBase !== null) return heading('분석 결과가 필요해요', '새로고침한 경우 저장된 조건으로 다시 분석해 주세요.') + link('analysis', '저장한 조건 분석하기');
   const p = policy(id), result = data.results.find(r => r.policy_id === id);
   if (!p || !result) return missing();
   return link('results', '← 정책 결과') + heading(escape(p.name), escape(p.description)) + `<section class="card">${badge(result.status)}<p class="benefit">${escape(p.benefit)}</p><p>${escape(result.reason)}</p>${result.future_eligibility_date ? `<p>향후 조건 충족 예상일: ${escape(result.future_eligibility_date)} (접수 가능 여부는 별도 확인)</p>` : ''}<h2>조건별 판정과 공고문 근거</h2>${result.conditions.map(c => `<div class="condition"><h3>${escape(c.name)} ${badge(c.status)}</h3><p>${escape(c.reason)}</p><blockquote>${escape(c.evidence.quote)}<br><small>가상 공고문 p.${escape(c.evidence.page)} · 실제 원문 연결 전</small></blockquote></div>`).join('')}<div class="actions">${result.status === 'UNKNOWN' ? link('questions', '추가 질문 확인') : ''}${link('schedule', '신청 준비 예시')}</div></section>`;
@@ -79,7 +83,10 @@ function renderPage(loadedData) {
   }
   const pages = { results, profile, questions, combinations, schedule, policies: () => detail(id), analysis };
   main.innerHTML = (Object.hasOwn(pages, page) ? pages[page] : missing)();
-  if (page === 'profile') mountProfile(main.querySelector('#profile-content'));
+  if (page === 'profile') mountProfile(main.querySelector('#profile-content'), {
+    onSaved: () => { liveJudgement = null; filter = 'all'; location.hash = '#/analysis'; },
+    onDeleted: () => { liveJudgement = null; filter = 'all'; },
+  });
   if (page === 'questions' && apiBase !== null) {
     questionMount?.cancel();
     questionMount = mountQuestions(main.querySelector('#live-questions'), {
@@ -111,7 +118,7 @@ function updatePageMeta() {
   document.title = `${main.querySelector('h1')?.textContent ?? '정책 결과'} · YouthFit AI`;
 }
 const loader = createPageLoader({
-  needsData: () => !usesReference(parseRoute(location.hash).page) && ['results', 'policies', 'questions', 'combinations', 'schedule'].includes(parseRoute(location.hash).page),
+  needsData: () => apiBase === null && !usesReference(parseRoute(location.hash).page) && ['results', 'policies', 'questions', 'combinations', 'schedule'].includes(parseRoute(location.hash).page),
   renderPage,
   renderLoading: () => {
     main.innerHTML = '<div class="state" role="status">예시 정책 데이터를 불러오고 있습니다…</div>';
@@ -122,7 +129,7 @@ const loader = createPageLoader({
     updatePageMeta();
   },
   loadData: async () => {
-    const response = await fetch('/mocks/scenario.json');
+    const response = await fetch(new URL('../mocks/scenario.json', import.meta.url));
     if (!response.ok) throw new Error('Mock 데이터를 불러오지 못했습니다.');
     return validateFixture(await response.json());
   },
@@ -172,4 +179,4 @@ window.addEventListener('hashchange', () => {
   if (!main.querySelector('.overlay.open')) main.focus({ preventScroll: true });
 });
 loader.show();
-loader.load();
+if (apiBase === null) loader.load();
