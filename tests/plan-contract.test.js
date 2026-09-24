@@ -21,6 +21,20 @@ test('rejects invalid plan statuses, dates and document references', () => {
 ]) assert.throws(() => validatePlanResponse((() => { const copy = structuredClone(fixture); change(copy); return copy; })()), error => error.code === 'INVALID_RESPONSE');
 });
 
+test('an INFEASIBLE plan can report negative slack, but the day counts it is built from stay non-negative', () => {
+  // slack_business_days is signed: it is how many business days short (or to spare) a
+  // plan is, so a plan that is already behind reports a negative number rather than
+  // clamping at 0 (see docs/HANDOFF.md's slack_business_days note).
+  const short = structuredClone(fixture);
+  short.plans[0].slack_business_days = -1;
+  assert.equal(validatePlanResponse(short).plans[0].slack_business_days, -1);
+  for (const key of ['business_days_to_deadline', 'preparation_business_days']) {
+    const invalid = structuredClone(fixture);
+    invalid.plans[0][key] = -1;
+    assert.throws(() => validatePlanResponse(invalid), error => error.code === 'INVALID_RESPONSE');
+  }
+});
+
 test('rejects summary counts that do not match plans', () => {
   const data = structuredClone(fixture);
   data.summary.on_track = 0;

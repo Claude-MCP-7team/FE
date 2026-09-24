@@ -1,5 +1,5 @@
 import { escape } from './dom.js';
-import { chip } from './confidence.js';
+import { chip, contactNotice } from './confidence.js';
 import { statuses } from './contracts.js';
 
 const verdictBadge = status => `<span class="badge ${status}">${statuses[status].symbol} ${statuses[status].label}</span>`;
@@ -36,6 +36,7 @@ export function renderJudgementDashboard(view, { filter = 'all', onDetail = id =
 export function renderJudgementDetail(result) {
   if (!result) return '<div class="state" role="alert"><h1>판정 결과를 찾을 수 없습니다</h1><a class="button" href="#/results">결과로 돌아가기</a></div>';
   const conditions = result.conditions.map(condition => `<div class="condition"><h3>${escape(condition.field)} ${badge(condition.status)}</h3><p>${condition.status === 'FUTURE_PASS' && condition.satisfiable_from ? `예상 충족일: ${escape(condition.satisfiable_from)}` : condition.status === 'FAIL' && condition.permanently_unsatisfiable ? '시간이 지나도 충족할 수 없는 조건입니다.' : ''}</p><blockquote>${escape(condition.evidence.quote)}${condition.evidence.url ? `<br><a href="${escape(condition.evidence.url)}" rel="noreferrer">원문 보기</a>` : ''}</blockquote></div>`).join('');
-  const contact = result.confidence === 'CONFIRMED' ? '' : `<p class="notice-inline">${escape(result.dept_name)} · ${escape(result.dept_tel)}로 최종 확인해 주세요.</p>`;
+  const notice = contactNotice(result);
+  const contact = notice ? `<p class="notice-inline">${notice}</p>` : '';
   return `<a class="button" href="#/results">← 정책 결과</a><div class="hero"><span class="eyebrow">정책 판정 상세</span><h1>${policyName(result)}</h1><p>${escape(result.explanation ?? '')}</p></div><section class="card"><p>${verdictBadge(result.status)} ${chip(result.confidence)}</p>${result.future_eligible_from ? `<p>예상 충족일: <time>${escape(result.future_eligible_from)}</time> · 접수 기간은 공고에서 따로 확인해 주세요.</p>` : ''}${contact}<h2>조건별 판정과 원문 근거</h2>${conditions || '<p>조건 상세가 없습니다.</p>'}</section>`;
 }

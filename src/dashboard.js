@@ -1,6 +1,6 @@
 import { dashboardTemplate, renderLiveDashboard } from './dashboard-template.js';
 import { escape } from './dom.js';
-import { chip, confidenceLabels } from './confidence.js';
+import { chip, confidenceLabels, contactNotice } from './confidence.js';
 import { statuses } from './contracts.js';
 
 const draftKey = 'ypc.reference-profile.v1';
@@ -187,7 +187,8 @@ function scheduleModel(plan) {
 const conditionStatusClass = { PASS: 'ok', FAIL: 'bad', UNKNOWN: 'ask', FUTURE_PASS: 'ok' };
 function detailBody(result) {
   const conditions = result.conditions.map(condition => `<div class="condition"><b>${escape(condition.field)}</b><span class="${conditionStatusClass[condition.status] ?? ''}">${statuses[condition.status].symbol} ${escape(statuses[condition.status].label)}</span><span>${escape(condition.evidence.quote)}${condition.status === 'FUTURE_PASS' && condition.satisfiable_from ? ` · 예상 충족일 ${escape(condition.satisfiable_from)}` : ''}${condition.status === 'FAIL' && condition.permanently_unsatisfiable ? ' · 시간이 지나도 충족할 수 없어요' : ''}</span></div>`).join('') || '<p class="muted">조건 상세가 없어요.</p>';
-  const contact = result.confidence === 'CONFIRMED' ? '' : `<div class="source"><b>확인이 필요해요</b><br>${escape(result.dept_name)} · ${escape(result.dept_tel)}로 최종 확인해 주세요.</div>`;
+  const notice = contactNotice(result);
+  const contact = notice ? `<div class="source"><b>확인이 필요해요</b><br>${notice}</div>` : '';
   const confidenceText = result.confidence === 'CONFIRMED' ? '확정' : escape(confidenceLabels[result.confidence] ?? result.confidence);
   return `<div class="detail-summary"><div><span>판정 신뢰도</span><strong>${confidenceText}</strong></div><div><span>확인된 조건</span><strong>${result.conditions.length}건</strong></div><div><span>원문 근거</span><strong>${result.conditions.filter(c => c.evidence?.quote).length}건 연결</strong></div></div><h3>조건별 판정과 원문 근거</h3><div class="conditions">${conditions}</div>${contact}`;
 }

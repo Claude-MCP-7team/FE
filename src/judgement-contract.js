@@ -59,9 +59,11 @@ export function validateJudgementResponse(data) {
       futureEligible++;
     }
     requireValue(result.needs_review_fields === undefined || (Array.isArray(result.needs_review_fields) && result.needs_review_fields.every(text)), `${path}.needs_review_fields`);
-    if (result.confidence !== 'CONFIRMED') {
-      for (const key of ['dept_name', 'dept_tel', 'origin_url']) requireValue(text(result[key]), `${path}.${key}`);
-    }
+    // origin_url is the one contact field BE's builder always fills (see docs/HANDOFF.md
+    // #dept_tel), so it is the only one required for a result a user needs to double-check.
+    // dept_name/dept_tel are real-world sparse -- most published policies simply have no
+    // phone on file -- so they stay optional at every confidence level (see nullableText above).
+    if (result.confidence !== 'CONFIRMED') requireValue(text(result.origin_url), `${path}.origin_url`);
     const ruleIds = new Set();
     for (const group of ['matched', 'unmatched', 'unknown']) {
       requireValue(Array.isArray(result[group]), `${path}.${group}`);
