@@ -203,7 +203,7 @@
     @media (max-width: 650px) {
       .shell { width:min(100% - 24px, 1180px); }
       nav { height:66px; }
-      .nav-links a { display:none; }
+      .nav-links a, .nav-links .auth-btn { display:none; }
       main { padding-top:30px; }
       .hero { grid-template-columns:1fr; align-items:start; }
       .hero-actions { width:100%; }
@@ -260,3 +260,9 @@ main#content{max-width:1180px;width:calc(100% - 40px);margin:0 auto;padding:46px
 
 /* Live API pages use their own content flow within the shared brand shell. */
 .api-mode .hero{display:block}.api-mode .condition{display:block}.api-mode .summary{grid-template-columns:repeat(4,minmax(0,1fr))}.api-mode .profile{font-size:13px}.api-mode .primary:hover{background:var(--secondary)}@media(max-width:700px){.api-mode .summary{grid-template-columns:repeat(2,minmax(0,1fr))}}
+
+/* Login/signup: a UI shell only, no account backend exists yet (see docs/HANDOFF.md #5). */
+.auth-form{display:grid;gap:16px;margin-top:20px}
+.auth-switch{text-align:center;margin-top:16px;font-size:13px;color:var(--sub)}
+.link-btn{background:none;border:0;padding:0;color:var(--primary);font-weight:700;cursor:pointer;text-decoration:underline;font-size:inherit}
+.field-error{display:block;color:var(--red);font-size:11px;margin-top:4px;min-height:14px}

@@ -14,6 +14,7 @@ import { mountCombinations } from './combination-page.js';
 import { createPlanApi } from './plan-api.js';
 import { mountPlan } from './plan-page.js';
 import { renderReferenceDashboard, mountReferenceDashboard, mountLiveDashboard } from './dashboard.js';
+import { mountAuthModals } from './auth-modal.js';
 const legacyRoutes = { '#dashboard': '#/results', '#combination': '#/combinations', '#schedule': '#/schedule', '#profile': '#/profile' };
 if (legacyRoutes[location.hash]) history.replaceState(null, '', legacyRoutes[location.hash]);
 const main = document.querySelector('main');
@@ -137,7 +138,7 @@ function renderPage(loadedData) {
 function updatePageMeta() {
   const { page } = parseRoute(location.hash);
   document.querySelectorAll('nav a').forEach(a => { if (a.hash === `#/${page}`) a.setAttribute('aria-current', 'page'); else a.removeAttribute('aria-current'); });
-  document.title = `${main.querySelector('h1')?.textContent ?? '정책 결과'} · YouthFit AI`;
+  document.title = `${main.querySelector('h1')?.textContent ?? '정책 결과'} · 청년서랍`;
 }
 const loader = createPageLoader({
   needsData: () => apiBase === null && !usesReference(parseRoute(location.hash).page) && ['results', 'policies', 'questions', 'combinations', 'schedule'].includes(parseRoute(location.hash).page),
@@ -163,6 +164,7 @@ main.addEventListener('click', event => {
   if (target?.hasAttribute('data-analyze')) startJudgement();
 });
 document.querySelector('.profile').addEventListener('click', () => { location.hash = '#/profile'; });
+mountAuthModals();
 function startJudgement() {
   if (apiBase === null || judgementRunner?.pending) return;
   if (!judgementRunner) {
