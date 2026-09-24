@@ -23,7 +23,7 @@ export function validatePlanResponse(data) {
   requireValue(object(data.summary), 'summary');
   for (const key of ['total', 'urgent', 'on_track', 'rolling', 'unknown_deadline', 'closed', 'infeasible']) requireValue(count(data.summary[key]), `summary.${key}`);
   requireValue(Array.isArray(data.plans) && Array.isArray(data.documents), 'plans');
-  requireValue(count(data.total_document_cost_krw) && count(data.visit_required_count) && count(data.unverified_document_count), 'document_summary');
+  requireValue(count(data.total_document_cost_krw) && count(data.visit_required_count) && count(data.unverified_document_count) && count(data.cost_unknown_document_count), 'document_summary');
   requireValue(typeof data.calendar_source_ref === 'string' && typeof data.disclaimer === 'string', 'metadata');
   const policyIds = new Set();
   data.plans.forEach((plan, index) => {
