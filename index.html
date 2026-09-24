@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
-  <title>YouthFit AI · 나에게 맞는 청년정책 실행 플랜</title>
+  <title>청년서랍 · 나에게 맞는 청년정책 실행 플랜</title>
   <link rel="stylesheet" href="./src/tokens.css">
   <link rel="stylesheet" href="./src/styles.css">
   <link rel="stylesheet" href="./src/profile.css">
@@ -13,16 +13,54 @@
   <a class="skip" href="#content">본문 바로가기</a>
   <header class="topbar">
     <nav class="shell" aria-label="주요 메뉴">
-      <a class="brand" href="#/results"><span class="brand-mark">Y</span> YouthFit AI</a>
+      <a class="brand" href="#/results"><span class="brand-mark" aria-hidden="true">🗄️</span> 청년서랍</a>
       <div class="nav-links">
         <a href="#/results">내 정책</a>
         <a href="#/combinations">추천 조합</a>
         <a href="#/schedule">신청 일정</a>
+        <button class="btn small ghost auth-btn" type="button" id="loginBtn">로그인</button>
+        <button class="btn small ghost auth-btn" type="button" id="signupBtn">회원가입</button>
         <button class="profile" aria-label="내 프로필">김</button>
       </div>
     </nav>
   </header>
   <main class="shell" id="content" tabindex="-1"></main>
+
+  <div class="overlay" id="loginOverlay" role="dialog" aria-modal="true" aria-labelledby="loginTitle">
+    <div class="modal">
+      <div class="modal-head">
+        <div><span class="brand-mark" aria-hidden="true">🗄️</span><h2 id="loginTitle">로그인</h2></div>
+        <button class="close" type="button" data-auth-close aria-label="닫기">×</button>
+      </div>
+      <p class="muted">내 서랍을 열어 맞춤 정책을 확인하세요</p>
+      <form class="auth-form" id="loginForm">
+        <div class="field"><label for="loginEmail">이메일</label><input id="loginEmail" name="email" type="email" placeholder="example@email.com" autocomplete="email" required></div>
+        <div class="field"><label for="loginPassword">비밀번호</label><input id="loginPassword" name="password" type="password" placeholder="비밀번호를 입력하세요" autocomplete="current-password" required minlength="6"></div>
+        <button class="btn primary" type="submit" style="width:100%">로그인</button>
+      </form>
+      <p class="auth-switch">아직 회원이 아니신가요? <button type="button" class="link-btn" data-switch-signup>회원가입</button></p>
+    </div>
+  </div>
+  <div class="overlay" id="signupOverlay" role="dialog" aria-modal="true" aria-labelledby="signupTitle">
+    <div class="modal">
+      <div class="modal-head">
+        <div><span class="brand-mark" aria-hidden="true">🗄️</span><h2 id="signupTitle">회원가입</h2></div>
+        <button class="close" type="button" data-auth-close aria-label="닫기">×</button>
+      </div>
+      <p class="muted">서랍을 만들고 나에게 맞는 정책을 모아보세요</p>
+      <form class="auth-form" id="signupForm">
+        <div class="field"><label for="signupName">이름</label><input id="signupName" name="name" type="text" placeholder="홍길동" autocomplete="name" required></div>
+        <div class="field"><label for="signupEmail">이메일</label><input id="signupEmail" name="email" type="email" placeholder="example@email.com" autocomplete="email" required></div>
+        <div class="field"><label for="signupPassword">비밀번호</label><input id="signupPassword" name="password" type="password" placeholder="6자 이상" autocomplete="new-password" required minlength="6"></div>
+        <div class="field"><label for="signupConfirmPassword">비밀번호 확인</label><input id="signupConfirmPassword" name="confirmPassword" type="password" placeholder="비밀번호를 다시 입력하세요" autocomplete="new-password" required minlength="6"><span class="field-error" id="signupConfirmError" role="alert"></span></div>
+        <p class="source">회원가입 시 이용약관 및 개인정보 처리방침에 동의하게 됩니다.</p>
+        <button class="btn primary" type="submit" style="width:100%">서랍 만들기</button>
+      </form>
+      <p class="auth-switch">이미 계정이 있으신가요? <button type="button" class="link-btn" data-switch-login>로그인</button></p>
+    </div>
+  </div>
+  <div class="toast" id="authToast" role="status" aria-live="polite"></div>
+
   <script type="module" src="./src/app.js"></script>
 </body>
 </html>

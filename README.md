@@ -1,4 +1,4 @@
-# YouthFit AI Frontend
+# 청년서랍 Frontend
 
 배포 파일 생성, 실 API 점검 결과와 남은 DB/CORS 설정은 [FE 배포 준비](docs/Deployment.md)를 참고하세요. `npm.cmd run build`는 `YPC_API_BASE`를 필수로 받아 `dist/`를 생성합니다.
 
