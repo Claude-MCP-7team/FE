@@ -7,14 +7,25 @@ const statusLabels = { URGENT: '지금 준비', ON_TRACK: '준비 가능', ROLLI
 const dateText = value => value ? value.replaceAll('-', '.') : '확인 필요';
 const money = value => `${new Intl.NumberFormat('ko-KR').format(value)}원`;
 function documentCard(document, index) {
-  return `<article class="card document-card"><h3>${escape(document.name)}${document.master_unverified ? ' · 확인 필요' : ''}</h3><p>${document.issuer ? `발급처: ${escape(document.issuer)}` : '발급처 확인 필요'}${document.lead_time_business_days ? ` · 예상 ${document.lead_time_business_days}영업일` : ''}</p><p>${document.cost_krw ? `발급 비용 ${money(document.cost_krw)}` : '발급 비용 정보 없음'}${document.requires_visit ? ' · 방문 필요' : ''}</p><button type="button" data-document-check="${index}" aria-pressed="false">준비 완료 체크</button></article>`;
+  // cost_krw: 0 (free, known) and null (fee exists but varies/unknown, e.g. per-school
+  // fees) must read differently -- collapsing them into one falsy check would show a
+  // real fee as "무료" (free). See docs/HANDOFF.md's total_document_cost_krw note.
+  const cost = document.cost_krw != null ? `발급 비용 ${money(document.cost_krw)}` : '발급 비용 미상';
+  return `<article class="card document-card"><h3>${escape(document.name)}${document.master_unverified ? ' · 확인 필요' : ''}</h3><p>${document.issuer ? `발급처: ${escape(document.issuer)}` : '발급처 확인 필요'}${document.lead_time_business_days ? ` · 예상 ${document.lead_time_business_days}영업일` : ''}</p><p>${cost}${document.requires_visit ? ' · 방문 필요' : ''}</p><button type="button" data-document-check="${index}" aria-pressed="false">준비 완료 체크</button></article>`;
 }
 function planCard(plan) {
   return `<article class="card plan-card"><div class="plan-status ${escape(plan.status)}">${escape(statusLabels[plan.status])}</div><h3>${escape(plan.title)}</h3><p>${escape(plan.reason || '신청 일정을 확인해 주세요.')}</p><dl><dt>준비 시작일</dt><dd>${dateText(plan.recommended_start_date)}</dd><dt>신청 마감일</dt><dd>${dateText(plan.deadline_date)}</dd></dl>${plan.documents.length ? `<p class="muted">필요서류 ${plan.documents.length}개 · 준비 ${plan.preparation_business_days}영업일</p>` : ''}${plan.origin_url ? `<a href="${escape(plan.origin_url)}" target="_blank" rel="noreferrer">공고 원문 보기</a>` : ''}</article>`;
 }
+// total_document_cost_krw only sums documents whose fee BE actually knows, so on its
+// own "0원" reads as "free" even when it really means "fee unknown for N documents"
+// (e.g. school-issued certificates priced per school). Always pair it with the count.
+function costSummary(response) {
+  const known = `확인된 발급 비용 ${money(response.total_document_cost_krw)}`;
+  return response.cost_unknown_document_count > 0 ? `${known} · 금액 미상 서류 ${response.cost_unknown_document_count}개` : known;
+}
 export function renderPlanResponse(response) {
   if (!response.plans.length && !response.documents.length) return '<section class="card"><h2>표시할 신청 계획이 없어요.</h2><p>현재 신청 가능한 정책의 서류와 일정이 없습니다.</p></section>';
-  return `<div class="hero"><span class="eyebrow">신청 준비 계획</span><h1>서류와 일정을 한눈에</h1><p class="muted">기준일 ${dateText(response.generated_for_date)} · ${escape(response.disclaimer)}</p></div><section><h2>신청 일정</h2><div class="grid">${response.plans.map(planCard).join('')}</div></section><section><h2>공통 필요서류</h2><p class="muted">총 ${response.documents.length}개 · 예상 발급 비용 ${money(response.total_document_cost_krw)}</p><div class="grid">${response.documents.map(documentCard).join('')}</div></section>`;
+  return `<div class="hero"><span class="eyebrow">신청 준비 계획</span><h1>서류와 일정을 한눈에</h1><p class="muted">기준일 ${dateText(response.generated_for_date)} · ${escape(response.disclaimer)}</p></div><section><h2>신청 일정</h2><div class="grid">${response.plans.map(planCard).join('')}</div></section><section><h2>공통 필요서류</h2><p class="muted">총 ${response.documents.length}개 · ${costSummary(response)}</p><div class="grid">${response.documents.map(documentCard).join('')}</div></section>`;
 }
 
 export function mountPlan(container, { profileApi = null, planApi = null, onRemount = null } = {}) {

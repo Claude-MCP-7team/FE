@@ -20,6 +20,7 @@
   "total_document_cost_krw": 0,
   "visit_required_count": 0,
   "unverified_document_count": 0,
+  "cost_unknown_document_count": 0,
   "calendar_source_ref": "synthetic-calendar-v1",
   "disclaimer": "최종 일정은 담당 기관에 확인해 주세요."
 }

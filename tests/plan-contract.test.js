@@ -18,6 +18,7 @@ test('rejects invalid plan statuses, dates and document references', () => {
     data => { data.documents[0].lead_time_business_days = -1; },
     data => { data.documents[0].required_by = ['']; },
     data => { data.plans[0].origin_url = 'javascript:alert(1)'; },
+    data => { delete data.cost_unknown_document_count; },
 ]) assert.throws(() => validatePlanResponse((() => { const copy = structuredClone(fixture); change(copy); return copy; })()), error => error.code === 'INVALID_RESPONSE');
 });
 
