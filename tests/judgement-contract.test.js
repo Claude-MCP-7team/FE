@@ -83,8 +83,6 @@ test('rejects missing evidence, duplicate identities, invalid types, dates, coun
     d => { d.results[1].unmatched[0].satisfiable_from = '0000-01-01'; },
     d => { d.results[1].unmatched[0].permanently_unsatisfiable = true; },
     d => { d.results[1].unmatched[0].time_satisfiable = 'true'; },
-    d => { d.results[1].dept_tel = null; },
-    d => { d.results[2].dept_name = ''; },
     d => { d.results[2].origin_url = null; },
     d => { d.results[0].origin_url = 'javascript:alert(1)'; },
     d => { d.results[1].unmatched[0].source_url = 'data:text/html,x'; },
@@ -97,6 +95,19 @@ test('rejects missing evidence, duplicate identities, invalid types, dates, coun
     const data = structuredClone(fixture); change(data);
     assert.throws(() => validateJudgementResponse(data), e => e.code === 'INVALID_RESPONSE');
   }
+});
+
+test('a non-CONFIRMED result with no department contact on file still validates, as long as origin_url is there', () => {
+  // Real published policies frequently have no phone/department recorded at all
+  // (see docs/HANDOFF.md's dept_tel note) -- only origin_url is guaranteed by BE's builder.
+  const data = structuredClone(fixture);
+  data.results[1].dept_name = null;
+  data.results[1].dept_tel = null;
+  data.results[2].dept_name = null;
+  data.results[2].dept_tel = '';
+  const view = toJudgementView(data);
+  assert.equal(view.results[1].dept_tel, null);
+  assert.equal(view.results[2].dept_name, null);
 });
 
 test('accepts empty results, null source links, zero, false, and valid leap days without inventing missing data', () => {

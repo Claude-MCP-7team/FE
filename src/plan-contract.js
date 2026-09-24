@@ -3,6 +3,7 @@ import { ApiError } from './profile-api.js';
 const object = value => value !== null && typeof value === 'object' && !Array.isArray(value);
 const text = value => typeof value === 'string' && value.trim().length > 0;
 const count = value => Number.isSafeInteger(value) && value >= 0;
+const integer = value => Number.isSafeInteger(value);
 const nullableText = value => value === null || value === undefined || typeof value === 'string';
 const sourceUrl = value => value === null || value === undefined || (text(value) && (() => { try { return ['http:', 'https:'].includes(new URL(value).protocol); } catch { return false; } })());
 const date = value => value === null || value === undefined || (typeof value === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(value) && (() => { const [year, month, day] = value.split('-').map(Number); const leap = year % 4 === 0 && (year % 100 !== 0 || year % 400 === 0); return year > 0 && month >= 1 && month <= 12 && day >= 1 && day <= [31, leap ? 29 : 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31][month - 1]; })());
@@ -32,7 +33,10 @@ export function validatePlanResponse(data) {
     for (const key of ['apply_start_date', 'deadline_date', 'recommended_start_date', 'issue_not_before_date', 'dept_name', 'dept_tel', 'reason']) requireValue(nullableText(plan[key]), `${path}.${key}`);
     requireValue(sourceUrl(plan.origin_url), `${path}.origin_url`);
     for (const key of ['apply_start_date', 'deadline_date', 'recommended_start_date', 'issue_not_before_date']) requireValue(date(plan[key]), `${path}.${key}`);
-    for (const key of ['slack_business_days', 'business_days_to_deadline', 'preparation_business_days']) requireValue(plan[key] === undefined || plan[key] === null || count(plan[key]), `${path}.${key}`);
+    // slack_business_days is signed: an INFEASIBLE plan is short on time, so it goes
+    // negative (documents[0] not ready before the deadline) rather than clamping at 0.
+    requireValue(plan.slack_business_days === undefined || plan.slack_business_days === null || integer(plan.slack_business_days), `${path}.slack_business_days`);
+    for (const key of ['business_days_to_deadline', 'preparation_business_days']) requireValue(plan[key] === undefined || plan[key] === null || count(plan[key]), `${path}.${key}`);
     for (const key of ['estimated', 'outside_calendar_coverage']) requireValue(plan[key] === undefined || typeof plan[key] === 'boolean', `${path}.${key}`);
     requireValue(Array.isArray(plan.documents), `${path}.documents`);
     plan.documents.forEach((document, documentIndex) => validateDocument(document, `${path}.documents[${documentIndex}]`));
