@@ -7,7 +7,7 @@ export const dashboardTemplate = `<div class="reference-dashboard">
     <section class="hero">
       <div>
         <div class="eyebrow">My policy dashboard</div>
-        <h1>김유진님, 받을 수 있는 정책을<br>실행 계획으로 만들었어요.</h1>
+        <h1>김유진님, 받을 수 있는 정책을 실행 계획으로 만들었어요.</h1>
         <p>입력한 조건과 공고문 원문을 대조한 결과입니다. 기준일 2026. 09. 04</p>
       </div>
       <div class="hero-actions">
@@ -249,7 +249,7 @@ export function renderLiveDashboard(model) {
     <section class="hero">
       <div>
         <div class="eyebrow">My policy dashboard</div>
-        <h1>받을 수 있는 정책을<br>실행 계획으로 만들었어요.</h1>
+        <h1>받을 수 있는 정책을 실행 계획으로 만들었어요.</h1>
         <p>${escape(model.judgement.disclaimer)}</p>
       </div>
       <div class="hero-actions">

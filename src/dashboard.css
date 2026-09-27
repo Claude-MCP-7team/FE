@@ -56,7 +56,8 @@
     main { padding: 46px 0 80px; }
     .eyebrow { color: var(--sub); font-size: 13px; font-weight: 800; letter-spacing: .08em; text-transform: uppercase; }
     .hero { display: grid; grid-template-columns: 1fr auto; gap: 30px; align-items: end; margin-bottom: 30px; }
-    h1 { font-size: clamp(31px, 4vw, 48px); line-height: 1.17; letter-spacing: -2px; margin: 9px 0 12px; }
+    /* keep-all: break between spaced words, not mid-syllable-block, on narrow screens. */
+    h1 { font-size: clamp(31px, 4vw, 48px); line-height: 1.17; letter-spacing: -2px; margin: 9px 0 12px; word-break: keep-all; overflow-wrap: break-word; }
     .hero p { color: var(--sub); margin: 0; }
     .hero-actions { display: flex; gap: 10px; }
     .btn { border: 1px solid var(--line); border-radius: 13px; background: var(--white); color: var(--ink); padding: 12px 17px; font-weight: 700; transition: .2s ease; }
@@ -260,6 +261,12 @@ main#content{max-width:1180px;width:calc(100% - 40px);margin:0 auto;padding:46px
 
 /* Live API pages use their own content flow within the shared brand shell. */
 .api-mode .hero{display:block}.api-mode .condition{display:block}.api-mode .summary{grid-template-columns:repeat(4,minmax(0,1fr))}.api-mode .profile{font-size:13px}.api-mode .primary:hover{background:var(--secondary)}@media(max-width:700px){.api-mode .summary{grid-template-columns:repeat(2,minmax(0,1fr))}}
+/* The live dashboard's condition rows (inside .reference-dashboard, built by
+   dashboard.js's detailBody()) need the 3-column grid above `.api-mode .condition`
+   just turned off -- that override exists for judgement-page.js's plain h3/p/blockquote
+   layout, which isn't a grid at all. Without this, the live overlay's <b>/<span>/<span>
+   render as adjacent inline text with no gap between them. */
+.api-mode .reference-dashboard .condition{display:grid}
 
 /* Login/signup: a UI shell only, no account backend exists yet (see docs/HANDOFF.md #5). */
 .auth-form{display:grid;gap:16px;margin-top:20px}
