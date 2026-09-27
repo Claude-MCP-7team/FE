@@ -59,6 +59,37 @@ test('a policy without a BE title is shown as an identifier, not a fabricated na
   assert.match(html, /<code class="policy-ref">TEST-ELIGIBLE<\/code>/);
 });
 
+test('catalog metadata fills in the title judge results never carry, but a real BE title always wins', () => {
+  const view = toJudgementView(structuredClone(fixture));
+  const catalog = new Map([['TEST-ELIGIBLE', { title: '경기 청년 면접수당', apply_end: null, is_rolling: false, amount_krw: null, estimated_total_krw: null }]]);
+  const html = renderLiveDashboard({ judgement: view, filter: 'PASS', catalog, combination: loading, documents: loading, plan: loading });
+  assert.match(html, /<h3>경기 청년 면접수당<\/h3>/);
+  assert.doesNotMatch(html, /policy-ref/);
+});
+
+test('amount and deadline read from the policy catalog, and a missing amount never becomes 0', () => {
+  const view = toJudgementView(structuredClone(fixture));
+  const catalog = new Map([
+    ['TEST-ELIGIBLE', { title: null, apply_end: '2099-01-01', is_rolling: false, amount_krw: 500000, estimated_total_krw: null, amount_confidence: 'CONFIRMED' }],
+    ['TEST-INELIGIBLE', { title: null, apply_end: null, is_rolling: true, amount_krw: null, estimated_total_krw: 300000, amount_confidence: 'ESTIMATED' }],
+    ['TEST-UNKNOWN', { title: null, apply_end: '2020-01-01', is_rolling: false, amount_krw: null, estimated_total_krw: null, amount_confidence: null }],
+  ]);
+  const html = renderLiveDashboard({ judgement: view, filter: 'all', catalog, combination: loading, documents: loading, plan: loading });
+  assert.match(html, /<div class="amount">최대 500,000원<\/div>/);
+  assert.match(html, /<div class="amount">최대 300,000원 \(추정\)<\/div>/);
+  assert.match(html, /<div class="amount">금액 미정<\/div>/);
+  assert.match(html, /<div class="deadline">D-\d+ · 01\.01 마감<\/div>/);
+  assert.match(html, /<div class="deadline">상시 신청<\/div>/);
+  assert.match(html, /<div class="deadline">01\.01 마감<\/div>/);
+});
+
+test('no catalog entry at all still renders a normal card -- amount stays "금액 미정" and there is no deadline div', () => {
+  const view = toJudgementView(structuredClone(fixture));
+  const html = renderLiveDashboard({ judgement: view, filter: 'all', combination: loading, documents: loading, plan: loading });
+  assert.equal((html.match(/<div class="amount">금액 미정<\/div>/g) ?? []).length, 3);
+  assert.doesNotMatch(html, /class="deadline"/);
+});
+
 test('hostile explanation and policy id text is escaped, not injected', () => {
   const hostile = structuredClone(fixture);
   hostile.results[0].explanation = '<img src=x onerror=alert(1)>';
