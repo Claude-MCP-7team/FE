@@ -7,6 +7,14 @@ import { liveDashboardSummary, liveFilteredResults, renderLiveDashboard } from '
 const fixture = JSON.parse(await readFile(new URL('./fixtures/judgement.json', import.meta.url), 'utf8'));
 const loading = { state: 'loading' };
 const empty = { state: 'empty', items: [] };
+// Mirrors dashboard-template.js's own KST reference date, so a deadline built as
+// "N days from now" lands on the exact same day the implementation computes --
+// this makes the boundary tests below independent of the viewer/CI machine's
+// own timezone (the bug the review that prompted these tests was about).
+const kstDateOffset = days => {
+  const [y, m, d] = new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Seoul' }).format(new Date()).split('-').map(Number);
+  return new Date(Date.UTC(y, m - 1, d + days)).toISOString().slice(0, 10);
+};
 
 test('summary counts split the ineligible tile the same way the plain dashboard does', () => {
   const view = toJudgementView(structuredClone(fixture));
@@ -81,6 +89,21 @@ test('amount and deadline read from the policy catalog, and a missing amount nev
   assert.match(html, /<div class="deadline">D-\d+ · 01\.01 마감<\/div>/);
   assert.match(html, /<div class="deadline">상시 신청<\/div>/);
   assert.match(html, /<div class="deadline">01\.01 마감<\/div>/);
+});
+
+test('deadline boundaries (today, tomorrow, yesterday) are computed on the KST calendar date, not the machine\'s local clock', () => {
+  const view = toJudgementView(structuredClone(fixture));
+  const catalog = new Map([
+    ['TEST-ELIGIBLE', { title: null, apply_end: kstDateOffset(0), is_rolling: false, amount_krw: null, estimated_total_krw: null }],
+    ['TEST-INELIGIBLE', { title: null, apply_end: kstDateOffset(1), is_rolling: false, amount_krw: null, estimated_total_krw: null }],
+    ['TEST-UNKNOWN', { title: null, apply_end: kstDateOffset(-1), is_rolling: false, amount_krw: null, estimated_total_krw: null }],
+  ]);
+  const html = renderLiveDashboard({ judgement: view, filter: 'all', catalog, combination: loading, documents: loading, plan: loading });
+  assert.match(html, /<div class="deadline">오늘 마감<\/div>/);
+  assert.match(html, /<div class="deadline">D-1 · \d{2}\.\d{2} 마감<\/div>/);
+  assert.doesNotMatch(html, /D-0/);
+  const pastDate = kstDateOffset(-1).replaceAll('-', '.').slice(5);
+  assert.match(html, new RegExp(`<div class="deadline">${pastDate} 마감</div>`));
 });
 
 test('no catalog entry at all still renders a normal card -- amount stays "금액 미정" and there is no deadline div', () => {

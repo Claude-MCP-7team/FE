@@ -193,13 +193,21 @@ function amountText(meta) {
   if (value == null) return '금액 미정';
   return `최대 ${money(value)}${meta.amount_confidence && meta.amount_confidence !== 'CONFIRMED' ? ' (추정)' : ''}`;
 }
+// apply_end is a KST calendar date from a Korea-only service; reading it against
+// new Date()'s ambient (viewer) timezone can be off by a day for anyone not on
+// KST. Both sides are read as plain Y/M/D and diffed as UTC midnight so neither
+// the viewer's clock nor DST can shift the result.
+const kstTodayParts = () => new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Seoul' }).format(new Date()).split('-').map(Number);
+function daysUntilKst(dateStr) {
+  const [y1, m1, d1] = kstTodayParts();
+  const [y2, m2, d2] = dateStr.split('-').map(Number);
+  return Math.round((Date.UTC(y2, m2 - 1, d2) - Date.UTC(y1, m1 - 1, d1)) / 86400000);
+}
 function deadlineText(meta) {
   if (!meta) return null;
   if (meta.is_rolling) return '상시 신청';
   if (!meta.apply_end) return null;
-  const end = new Date(`${meta.apply_end}T23:59:59`);
-  const today = new Date(); today.setHours(0, 0, 0, 0);
-  const days = Math.ceil((end - today) / 86400000);
+  const days = daysUntilKst(meta.apply_end);
   const date = meta.apply_end.replaceAll('-', '.').slice(5);
   return days < 0 ? `${date} 마감` : days === 0 ? '오늘 마감' : `D-${days} · ${date} 마감`;
 }
