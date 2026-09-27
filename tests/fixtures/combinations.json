@@ -1,0 +1,23 @@
+{
+  "snapshot_version": "synthetic-combinations-v1",
+  "eligible_count": 3,
+  "scenarios": [
+    {
+      "kind": "conservative",
+      "label": "안전한 조합",
+      "description": "충돌 근거가 확인된 정책만 묶습니다.",
+      "approximate": false,
+      "combinations": [
+        {
+          "rank": 1,
+          "total_krw": 1200000,
+          "total_is_estimated": false,
+          "members": [{ "policy_id": "P-1", "title": "청년 도약 지원", "estimated_total_krw": 1200000, "amount_estimated": false }],
+          "excluded": [{ "policy_id": "P-2", "title": "청년 수당", "estimated_total_krw": 600000, "conflicts_with": "P-1", "conflicts_with_title": "청년 도약 지원", "confidence": "CONFIRMED", "conflict_type": "explicit", "source_quote": "동일 기간 중복 수혜 불가", "source_url": "https://example.org/p-2", "dept_name": "청년정책과", "dept_tel": "02-0000-0000" }]
+        }
+      ]
+    },
+    { "kind": "maximal", "label": "최대 금액 조합", "description": "추정 금액을 포함해 비교합니다.", "combinations": [] }
+  ],
+  "disclaimer": "최종 수혜 가능 여부는 담당 기관에 확인해 주세요."
+}

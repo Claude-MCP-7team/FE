@@ -1,0 +1,122 @@
+{
+  "checkedAt": "2026-09-21T07:20:59.830Z",
+  "baseUrl": "https://be-27y9.onrender.com",
+  "origin": "http://127.0.0.1:5173",
+  "syntheticProfile": true,
+  "checks": [
+    {
+      "name": "ready",
+      "passed": true,
+      "details": {
+        "ready": true,
+        "version": "20260921T0719Z-5p-3a825958c00e",
+        "policy_count": 5,
+        "rule_count": 13,
+        "loaded_at": "2026-09-21T07:19:19.551091+00:00",
+        "database": {
+          "configured": false,
+          "ready": false,
+          "size": 0,
+          "idle": 0
+        }
+      }
+    },
+    {
+      "name": "policies",
+      "passed": true,
+      "details": {
+        "total": 5,
+        "titles": [
+          "[데모] 청년 월세 한시 특별지원",
+          "[데모] 청년 구직활동 지원금",
+          "[데모] 경기도 청년 면접수당",
+          "[데모] 경기도 청년 자격증 응시료 지원",
+          "[데모] 부천시 청년 자립지원금"
+        ],
+        "snapshot": "20260921T0719Z-5p-3a825958c00e"
+      }
+    },
+    {
+      "name": "cors-preflight",
+      "passed": false,
+      "status": 405,
+      "message": "Preflight HTTP 405, allow-origin=null"
+    },
+    {
+      "name": "judge",
+      "passed": true,
+      "details": {
+        "summary": {
+          "eligible": 2,
+          "ineligible": 2,
+          "needs_info": 1,
+          "future_eligible": 1
+        },
+        "snapshot": "20260921T0719Z-5p-3a825958c00e"
+      }
+    },
+    {
+      "name": "questions",
+      "passed": true,
+      "details": {
+        "snapshot_version": "20260921T0719Z-5p-3a825958c00e",
+        "questions": [
+          {
+            "field": "similar_program_participation_2y",
+            "text": "최근 2년 안에 다른 자격증 응시료 지원사업에 참여한 적이 있나요?",
+            "resolves": 1,
+            "affects": 1,
+            "answer_type": "boolean",
+            "choices": [],
+            "source_quote": "최근 2년 이내 도(道) 또는 시·군의 유사 자격증 응시료 지원사업에 참여한 자는 제외",
+            "source_policy_ids": [
+              "DEMO-GG-2026-0004"
+            ]
+          }
+        ],
+        "total_unresolved_fields": 1,
+        "needs_info_policies": 1
+      }
+    },
+    {
+      "name": "rejudge-with-answer",
+      "passed": true,
+      "details": {
+        "summary": {
+          "eligible": 3,
+          "ineligible": 2,
+          "needs_info": 0,
+          "future_eligible": 1
+        }
+      }
+    },
+    {
+      "name": "combinations",
+      "passed": true,
+      "details": {
+        "keys": [
+          "snapshot_version",
+          "eligible_count",
+          "scenarios",
+          "disclaimer"
+        ]
+      }
+    },
+    {
+      "name": "plan",
+      "passed": true,
+      "details": {
+        "plans": 3,
+        "documents": 8
+      }
+    },
+    {
+      "name": "session-create-read-update",
+      "passed": false,
+      "code": "session-store-unavailable",
+      "status": 503,
+      "detail": "세션 저장소를 사용할 수 없습니다 (판정 기능은 정상 동작합니다)",
+      "message": "세션 저장소를 사용할 수 없습니다 (판정 기능은 정상 동작합니다)"
+    }
+  ]
+}

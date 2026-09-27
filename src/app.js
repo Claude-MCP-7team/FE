@@ -2,14 +2,48 @@ import { statuses, validateFixture, parseRoute } from './contracts.js';
 import { mountProfile } from './profile-form.js';
 import { escape } from './dom.js';
 import { createPageLoader } from './page-loader.js';
+import { createProfileApi } from './profile-api.js';
+import { createJudgementApi } from './judgement-api.js';
+import { toJudgementView } from './judgement-contract.js';
+import { apiBase } from './runtime-config.js';
+import { renderJudgementDashboard, renderJudgementDetail } from './judgement-page.js';
+import { createJudgementRunner } from './judgement-runner.js';
+import { mountQuestions } from './question-page.js';
+import { createCombinationApi } from './combination-api.js';
+import { mountCombinations } from './combination-page.js';
+import { createPlanApi } from './plan-api.js';
+import { mountPlan } from './plan-page.js';
+import { renderReferenceDashboard, mountReferenceDashboard, mountLiveDashboard } from './dashboard.js';
+import { mountAuthModals } from './auth-modal.js';
+const legacyRoutes = { '#dashboard': '#/results', '#combination': '#/combinations', '#schedule': '#/schedule', '#profile': '#/profile' };
+if (legacyRoutes[location.hash]) history.replaceState(null, '', legacyRoutes[location.hash]);
 const main = document.querySelector('main');
+document.body.classList.toggle('api-mode', apiBase !== null);
+if (apiBase !== null) document.querySelector('.profile').textContent = '내';
 let data;
 let filter = 'all';
+let liveJudgement = null;
+let judgementRunner;
+let questionMount;
+let combinationMount;
+let planMount;
+let dashboardMount;
+const referencePages = ['results', 'profile', 'questions', 'combinations', 'schedule'];
+const usesReference = page => apiBase === null && referencePages.includes(page);
+const liveDashboardPages = ['results', 'combinations', 'schedule'];
+// Mirrors the reference dashboard once a live judgement exists, so the deployed
+// screen a user actually sees matches the Mock-mode design instead of the plain
+// fallback cards. Before any judgement has run, #/combinations and #/schedule keep
+// working on their own via mountCombinations/mountPlan below — they do not need a
+// prior /v1/judge call, only a saved profile.
+const usesLiveDashboard = page => apiBase !== null && liveJudgement !== null && liveDashboardPages.includes(page);
 const badge = status => `<span class="badge ${status}">${statuses[status].symbol} ${statuses[status].label}</span>`;
 const link = (href, text) => `<a class="button" href="#/${href}">${text}</a>`;
 const heading = (title, description) => `<div class="hero"><span class="eyebrow">나에게 맞는 다음 단계</span><h1>${title}</h1><p class="muted">${description}</p></div>`;
 const policy = id => data.policies.find(p => p.policy_id === id);
 function results() {
+  if (liveJudgement) return renderJudgementDashboard(liveJudgement, { filter });
+  if (apiBase !== null) return heading('내 조건에 맞는 정책 찾기', '조건을 저장하고 분석하면 서버의 판정 결과와 근거를 확인할 수 있어요.') + `<section class="card"><div class="actions">${link('profile', '내 조건 입력·수정')}${link('analysis', '저장한 조건 분석하기')}</div></section>`;
   const selected = data.results.filter(result => filter === 'all' || result.status === filter);
   return heading('청년정책, 가능성부터 실행까지', '내 조건에 따른 결과와 이유를 확인하는 화면입니다. 기준일: 2026-09-12 · 예시 프로필') +
     `<div class="summary">${Object.entries(statuses).map(([key, value]) => `<article>${value.label}<strong>${data.results.filter(r => r.status === key).length}<small>개</small></strong></article>`).join('')}</div>` +
@@ -19,6 +53,8 @@ function results() {
     }).join('') || '<p class="card">해당 상태의 정책이 없습니다. 다른 필터를 선택하세요.</p>'}</div>`;
 }
 function detail(id) {
+  if (liveJudgement) return renderJudgementDetail(liveJudgement.results.find(result => result.policy_id === id));
+  if (apiBase !== null) return heading('분석 결과가 필요해요', '새로고침한 경우 저장된 조건으로 다시 분석해 주세요.') + link('analysis', '저장한 조건 분석하기');
   const p = policy(id), result = data.results.find(r => r.policy_id === id);
   if (!p || !result) return missing();
   return link('results', '← 정책 결과') + heading(escape(p.name), escape(p.description)) + `<section class="card">${badge(result.status)}<p class="benefit">${escape(p.benefit)}</p><p>${escape(result.reason)}</p>${result.future_eligibility_date ? `<p>향후 조건 충족 예상일: ${escape(result.future_eligibility_date)} (접수 가능 여부는 별도 확인)</p>` : ''}<h2>조건별 판정과 공고문 근거</h2>${result.conditions.map(c => `<div class="condition"><h3>${escape(c.name)} ${badge(c.status)}</h3><p>${escape(c.reason)}</p><blockquote>${escape(c.evidence.quote)}<br><small>가상 공고문 p.${escape(c.evidence.page)} · 실제 원문 연결 전</small></blockquote></div>`).join('')}<div class="actions">${result.status === 'UNKNOWN' ? link('questions', '추가 질문 확인') : ''}${link('schedule', '신청 준비 예시')}</div></section>`;
@@ -27,30 +63,85 @@ function profile() {
   return '<div id="profile-content"></div>';
 }
 function questions() {
+  if (apiBase !== null) return '<div id="live-questions"></div>';
   return heading('판정에 필요한 추가 질문', 'UNKNOWN 상태에서는 확인되지 않은 답변을 임의로 판정하지 않습니다.') + data.questions.map(q => `<section class="card"><p class="muted">${escape(policy(q.policy_id).name)}</p><h2>${escape(q.text)}</h2><fieldset disabled><legend>답변 예시 · M3 연결 예정</legend><select aria-label="참여 이력"><option>답변을 선택하세요</option><option>예</option><option>아니오</option><option>잘 모르겠음</option></select></fieldset><p>답변 제출 → 재판정 중 → 갱신된 결과 순서로 연결할 예정입니다.</p></section>`).join('');
 }
 function combinations() {
+  if (apiBase !== null) return '<div id="live-combinations"></div>';
   return heading('함께 받을 수 있는 정책', '중복수혜 여부와 충돌 사유를 비교하는 화면 예시입니다.') + `<section class="card">${badge(data.combination.compatibility)}<h2>검토 중인 조합</h2><ul>${data.combination.policy_ids.map(id => `<li>${escape(policy(id).name)}</li>`).join('')}</ul>${data.combination.conflicts.map(c => `<p>${escape(c.reason)}</p>`).join('')}<p class="muted">중복수혜 확인 전에는 수혜 가능 조합이나 총 혜택을 확정하지 않습니다.</p>${link('schedule', '서류·일정 보기')}</section>`;
 }
 function schedule() {
+  if (apiBase !== null) return '<div id="live-plan"></div>';
   return heading('신청 준비를 한눈에', '필요서류와 신청 일정을 연결하는 화면 예시입니다.') + `<div class="grid"><section class="card"><h2>필요서류</h2>${data.documents.map(d => `<h3>${escape(d.name)} · ${d.required ? '필수' : '선택'}</h3><p>${escape(policy(d.policy_id).name)}</p><p>발급처: ${escape(d.issuer)} / 예상 ${d.estimated_days}일</p><button disabled>준비 완료 체크 · M4 연결 예정</button>`).join('')}</section><section class="card"><h2>신청 타임라인</h2>${data.schedules.map(s => `<h3>${escape(policy(s.policy_id).name)}</h3><dl><dt>준비 시작일</dt><dd>${escape(s.preparation_date)}</dd><dt>권장 신청일</dt><dd>${escape(s.recommended_date)}</dd><dt>마감일</dt><dd>${escape(s.deadline)}</dd></dl>`).join('')}</section></div>`;
 }
 function missing() { return heading('화면을 찾을 수 없습니다', '주소를 확인하거나 정책 결과로 돌아가세요.') + link('results', '정책 결과로'); }
+function analysis() {
+  const message = apiBase === null ? '서버 주소를 설정하면 저장한 조건으로 실제 판정을 요청할 수 있어요.' : '저장한 프로필을 BE 판정 엔진에 보내 결과와 근거를 받아옵니다.';
+  const pending = judgementRunner?.pending;
+  return heading('분석을 시작할 준비가 되었어요', message) + `<section class="card"><p id="analysis-status" role="status" aria-live="polite">${pending ? '판정 결과를 불러오는 중이에요.' : ''}</p><button class="primary" data-analyze ${apiBase === null || pending ? 'disabled' : ''}>${pending ? '판정 중…' : '내 조건 분석하기'}</button></section>`;
+}
 function renderPage(loadedData) {
+  dashboardMount?.destroy();
+  dashboardMount = null;
   data = loadedData;
   const { page, id } = parseRoute(location.hash);
-  const pages = { results, profile, questions, combinations, schedule, policies: () => detail(id), analysis: () => heading('분석을 시작할 준비가 되었어요', '프로필 저장 → 분석 요청 → 결과 조회 순서입니다. 현재 실제 분석은 연결되지 않았습니다.') + link('results', 'Mock 결과 보기') };
+  if (usesReference(page)) {
+    main.innerHTML = renderReferenceDashboard();
+    dashboardMount = mountReferenceDashboard(main, { page });
+    updatePageMeta();
+    return;
+  }
+  if (usesLiveDashboard(page)) {
+    dashboardMount = mountLiveDashboard(main, {
+      judgement: liveJudgement,
+      profileApi: createProfileApi({ baseUrl: apiBase }),
+      combinationApi: createCombinationApi({ baseUrl: apiBase }),
+      planApi: createPlanApi({ baseUrl: apiBase }),
+      onReanalyze: () => { location.hash = '#/analysis'; startJudgement(); },
+    });
+    updatePageMeta();
+    if (page === 'combinations') main.querySelector('#combination')?.scrollIntoView();
+    if (page === 'schedule') main.querySelector('#schedule')?.scrollIntoView();
+    return;
+  }
+  const pages = { results, profile, questions, combinations, schedule, policies: () => detail(id), analysis };
   main.innerHTML = (Object.hasOwn(pages, page) ? pages[page] : missing)();
-  if (page === 'profile') mountProfile(main.querySelector('#profile-content'));
+  if (page === 'profile') mountProfile(main.querySelector('#profile-content'), {
+    onSaved: () => { liveJudgement = null; filter = 'all'; location.hash = '#/analysis'; },
+    onDeleted: () => { liveJudgement = null; filter = 'all'; },
+  });
+  if (page === 'questions' && apiBase !== null) {
+    questionMount?.cancel();
+    questionMount = mountQuestions(main.querySelector('#live-questions'), {
+      onRejudge: async (profile, sessionId, signal) => {
+        const result = await createJudgementApi({ baseUrl: apiBase }).judge(profile, { sessionId, signal });
+        liveJudgement = toJudgementView(result);
+        location.hash = '#/results';
+      },
+      onRemount: nextMount => { questionMount = nextMount; },
+    });
+  }
+  if (page === 'combinations' && apiBase !== null) {
+    combinationMount?.cancel();
+    combinationMount = mountCombinations(main.querySelector('#live-combinations'), {
+      onRemount: nextMount => { combinationMount = nextMount; },
+    });
+  }
+  if (page === 'schedule' && apiBase !== null) {
+    planMount?.cancel();
+    planMount = mountPlan(main.querySelector('#live-plan'), {
+      onRemount: nextMount => { planMount = nextMount; },
+    });
+  }
   updatePageMeta();
 }
 function updatePageMeta() {
   const { page } = parseRoute(location.hash);
   document.querySelectorAll('nav a').forEach(a => { if (a.hash === `#/${page}`) a.setAttribute('aria-current', 'page'); else a.removeAttribute('aria-current'); });
-  document.title = `${main.querySelector('h1')?.textContent ?? '정책 결과'} · YouthFit AI`;
+  document.title = `${main.querySelector('h1')?.textContent ?? '정책 결과'} · 청년서랍`;
 }
 const loader = createPageLoader({
-  needsData: () => ['results', 'policies', 'questions', 'combinations', 'schedule'].includes(parseRoute(location.hash).page),
+  needsData: () => apiBase === null && !usesReference(parseRoute(location.hash).page) && ['results', 'policies', 'questions', 'combinations', 'schedule'].includes(parseRoute(location.hash).page),
   renderPage,
   renderLoading: () => {
     main.innerHTML = '<div class="state" role="status">예시 정책 데이터를 불러오고 있습니다…</div>';
@@ -61,7 +152,7 @@ const loader = createPageLoader({
     updatePageMeta();
   },
   loadData: async () => {
-    const response = await fetch('/mocks/scenario.json');
+    const response = await fetch(new URL('../mocks/scenario.json', import.meta.url));
     if (!response.ok) throw new Error('Mock 데이터를 불러오지 못했습니다.');
     return validateFixture(await response.json());
   },
@@ -70,7 +161,46 @@ main.addEventListener('click', event => {
   const target = event.target.closest('button');
   if (target?.dataset.filter) { filter = target.dataset.filter; loader.show(); main.querySelector(`[data-filter="${filter}"]`).focus(); }
   if (target?.hasAttribute('data-retry')) loader.load();
+  if (target?.hasAttribute('data-analyze')) startJudgement();
 });
-window.addEventListener('hashchange', () => { loader.show(); main.focus(); window.scrollTo(0, 0); });
+document.querySelector('.profile').addEventListener('click', () => { location.hash = '#/profile'; });
+mountAuthModals();
+function startJudgement() {
+  if (apiBase === null || judgementRunner?.pending) return;
+  if (!judgementRunner) {
+    const profiles = createProfileApi({ baseUrl: apiBase });
+    const judgement = createJudgementApi({ baseUrl: apiBase });
+    judgementRunner = createJudgementRunner({
+      loadProfile: async () => {
+        const profile = await profiles.get();
+        if (!profile) throw new Error('저장된 조건이 없습니다. 먼저 프로필을 저장해 주세요.');
+        return profile;
+      },
+      judge: (profile, options) => judgement.judge(profile, { ...options, sessionId: profiles.sessionId }),
+      isActive: () => parseRoute(location.hash).page === 'analysis',
+      onLoading: () => { main.innerHTML = analysis(); updatePageMeta(); },
+      onSuccess: response => { liveJudgement = toJudgementView(response); location.hash = '#/results'; },
+      onError: error => {
+        const status = document.querySelector('#analysis-status');
+        if (status) status.textContent = error.message || '판정을 요청하지 못했어요. 다시 시도해 주세요.';
+      },
+    });
+  }
+  judgementRunner.start().finally(() => {
+    if (parseRoute(location.hash).page === 'analysis') {
+      const button = document.querySelector('[data-analyze]');
+      if (button) { button.disabled = apiBase === null; button.textContent = '내 조건 분석하기'; }
+    }
+  });
+}
+window.addEventListener('hashchange', () => {
+  if (parseRoute(location.hash).page !== 'analysis') judgementRunner?.cancel();
+  if (parseRoute(location.hash).page !== 'questions') questionMount?.cancel();
+  if (parseRoute(location.hash).page !== 'combinations') combinationMount?.cancel();
+  if (parseRoute(location.hash).page !== 'schedule') planMount?.cancel();
+  window.scrollTo(0, 0);
+  loader.show();
+  if (!main.querySelector('.overlay.open')) main.focus({ preventScroll: true });
+});
 loader.show();
-loader.load();
+if (apiBase === null) loader.load();

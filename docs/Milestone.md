@@ -1,3 +1,9 @@
+> **BE 진행 확인: 2026-09-21** — `dev@002e749`의 코드와 [CI 35501247191](https://github.com/Claude-MCP-7team/BE/actions/runs/35501247191)을 대조해 M0~M4 Backend 작업 **37개**를 체크했다. Linux **658 passed / 1 skipped**, Windows **626 passed / 33 skipped**이며 이번 점검에서 테스트를 로컬 재실행한 것은 아니다.
+>
+> 개별 BE 작업 완료와 팀 전체 마일스톤 완료는 구분한다. `main`은 초기 README 상태이고 AI 브랜치의 고유 8커밋은 dev에 미병합이다. 실제 FE/CORS 통합·실 LLM 호출·만료된 실제 공고 조합 데모는 완료로 간주하지 않았다. [체크 근거와 남은 작업](Backend-progress-audit-2026-09-21.md)을 참고한다.
+
+> **AI 진행 확인: 2026-09-24** — `ai/agents-a1-a2@18534ab`의 고유 9커밋을 확인하고 [BE PR #2](https://github.com/Claude-MCP-7team/BE/pull/2)로 `dev@675b689`에 병합했다. AI 브랜치에서 구현·검증된 항목을 아래에 체크했지만 실제 API 키를 사용한 LLM 실행·실공고 스냅샷 교체·최종 E2E는 미완료다. 남은 작업은 [BE Issue #3](https://github.com/Claude-MCP-7team/BE/issues/3)에서 추적한다. [AI 점검 근거](AI-progress-audit-2026-09-24.md)를 참고한다.
+
 <aside>
 📌
 
@@ -86,15 +92,15 @@ v3.0 원칙: **v2.0의 짧고 현실적인 일정 + v1.0의 명확한 기술 책
 
 ## P0 — 반드시 제출할 기능
 
-- [ ]  사용자 기본조건 입력 및 수정
+- [x]  사용자 기본조건 입력 및 수정
 - [ ]  실제 정책 데이터 조회
 - [ ]  실제 공고문 최소 3~5건 Parsing
 - [ ]  공고문 기반 PolicyCondition 구조화
-- [ ]  PASS / FAIL / UNKNOWN / FUTURE_PASS 판정
-- [ ]  판정 이유 + 원문 근거 표시
-- [ ]  AI 역질문 + 답변 후 재판정
-- [ ]  최소 2개 정책의 중복수혜 Conflict 분석
-- [ ]  추천 가능한 정책 조합 1개 이상
+- [x]  PASS / FAIL / UNKNOWN / FUTURE_PASS 판정
+- [x]  판정 이유 + 원문 근거 표시
+- [x]  AI 역질문 + 답변 후 재판정
+- [x]  최소 2개 정책의 중복수혜 Conflict 분석
+- [x]  추천 가능한 정책 조합 1개 이상
 - [ ]  필요서류 + 준비 일정 표시
 - [ ]  제출용 E2E 시나리오 반복 실행
 
@@ -132,31 +138,31 @@ v3.0 원칙: **v2.0의 짧고 현실적인 일정 + v1.0의 명확한 기술 책
 
 ### 🤖 AI
 
-- [ ]  실제 공고문 3~5건 선정
-- [ ]  HTML/PDF 등 텍스트 추출 가능 여부 확인
-- [ ]  PolicyCondition Schema 초안 작성
-- [ ]  추출 필드 확정: 자격·제외·지역·연령·거주·소득·학력·취업·서류·마감·중복수혜
-- [ ]  Source Evidence 필수 반환 규칙 확정
-- [ ]  역질문 입력/출력 형식 확정
+- [x]  실제 공고문 3~5건 선정 — AI 브랜치에서 실제 공고 5건과 추가 6건 리허설 확인
+- [x]  HTML/PDF 등 텍스트 추출 가능 여부 확인 — 원문 수집·수동 구조화 자료로 확인
+- [x]  PolicyCondition Schema 초안 작성 — A2 구조화 계약과 golden 기준 확인
+- [x]  추출 필드 확정: 자격·제외·지역·연령·거주·소득·학력·취업·서류·마감·중복수혜
+- [x]  Source Evidence 필수 반환 규칙 확정 — 인용문 대조·quote gate 확인
+- [x]  역질문 입력/출력 형식 확정 — 질문·답변 정규화 계약 확인
 
 ### 🛠️ Backend
 
-- [ ]  온통청년 OPEN API 실제 호출 확인
-- [ ]  원문 공고문 URL 확보 가능 여부 확인
-- [ ]  1차 범위 정책 수 대략 확인
-- [ ]  UserProfile / Policy / PolicyCondition / EligibilityResult Schema 확정
-- [ ]  AIQuestion / PolicyConflict / RequiredDocument / ApplicationSchedule Schema 확정
-- [ ]  API Response / Error 규격 확정
-- [ ]  FE Mock JSON 제공
-- [ ]  AI ↔ BE DTO 확정
+- [x]  온통청년 OPEN API 실제 호출 확인
+- [x]  원문 공고문 URL 확보 가능 여부 확인
+- [x]  1차 범위 정책 수 대략 확인
+- [x]  UserProfile / Policy / PolicyCondition / EligibilityResult Schema 확정
+- [x]  AIQuestion / PolicyConflict / RequiredDocument / ApplicationSchedule Schema 확정
+- [x]  API Response / Error 규격 확정
+- [x]  FE Mock JSON 제공
+- [x]  AI ↔ BE DTO 확정
 
 ### 💻 Frontend
 
-- [ ]  전체 User Flow 확정
-- [ ]  입력 / 분석 / 결과 / 상세 / 역질문 / 조합 / 일정 화면 목록 확정
-- [ ]  4개 판정 상태 UI 규칙 확정
-- [ ]  Mock JSON으로 핵심 화면 Wireframe 확인
-- [ ]  Routing 및 공통 Component 구조 확정
+- [x]  전체 User Flow 확정
+- [x]  입력 / 분석 / 결과 / 상세 / 역질문 / 조합 / 일정 화면 목록 확정
+- [x]  4개 판정 상태 UI 규칙 확정
+- [x]  Mock JSON으로 핵심 화면 Wireframe 확인
+- [x]  Routing 및 공통 Component 구조 확정
 
 ### 🎨 Design · Planning
 
@@ -184,54 +190,54 @@ v3.0 원칙: **v2.0의 짧고 현실적인 일정 + v1.0의 명확한 기술 책
 
 #### 9/7 ~ 9/8
 
-- [ ]  사용자 기본조건 입력 화면
-- [ ]  필수값·날짜·숫자 Validation
+- [x]  사용자 기본조건 입력 화면
+- [x]  필수값·날짜·숫자 Validation
 
 #### 9/9 ~ 9/10
 
-- [ ]  사용자 조건 수정 화면
-- [ ]  Profile 저장/조회 API 연동
+- [x]  사용자 조건 수정 화면
+- [x]  Profile 저장/조회 API 연동
 
 #### 9/11
 
-- [ ]  분석 시작 / Loading 화면
-- [ ]  M1 FE 자체 점검
+- [x]  분석 시작 / Loading 화면
+- [x]  M1 FE 자체 점검
 
 ### 🛠️ Backend
 
 #### 9/7 ~ 9/8
 
-- [ ]  DB 기본 Schema 적용
-- [ ]  UserProfile CRUD
+- [x]  DB 기본 Schema 적용
+- [x]  UserProfile CRUD
 
 #### 9/9 ~ 9/10
 
-- [ ]  정책 수집 모듈
-- [ ]  Policy 목록/상세 API
-- [ ]  원문 공고문 URL 저장
+- [x]  정책 수집 모듈
+- [x]  Policy 목록/상세 API
+- [x]  원문 공고문 URL 저장
 
 #### 9/11
 
-- [ ]  AI Parsing 결과 저장 연결
-- [ ]  테스트 정책 Seed Data 준비
+- [x]  AI Parsing 결과 저장 연결 — 검증 후 JSON 정책/스냅샷 저장. 실제 LLM 호출 또는 Policy DB 적재 완료와는 별개.
+- [x]  테스트 정책 Seed Data 준비
 
 ### 🤖 AI
 
 #### 9/7 ~ 9/8
 
-- [ ]  공고문 전처리
-- [ ]  자격/제외조건 Parsing Prompt
+- [x]  공고문 전처리
+- [x]  자격/제외조건 Parsing Prompt
 
 #### 9/9 ~ 9/10
 
-- [ ]  지역·연령·거주·소득·학력·취업조건 구조화
-- [ ]  서류·마감·중복수혜 문구 구조화
-- [ ]  sourceQuote 함께 반환
+- [x]  지역·연령·거주·소득·학력·취업조건 구조화
+- [x]  서류·마감·중복수혜 문구 구조화
+- [x]  sourceQuote 함께 반환
 
 #### 9/11
 
-- [ ]  실제 공고문 3~5건 Parsing 테스트
-- [ ]  JSON Schema Validation
+- [x]  실제 공고문 3~5건 Parsing 테스트 — golden 5건 및 추가 리허설 확인
+- [x]  JSON Schema Validation
 
 ### 🎨 Design · Planning
 
@@ -240,7 +246,7 @@ v3.0 원칙: **v2.0의 짧고 현실적인 일정 + v1.0의 명확한 기술 책
 
 ### ✅ M1 완료 판정
 
-- [ ]  사용자가 조건을 저장하고 수정할 수 있다.
+- [x]  사용자가 조건을 저장하고 수정할 수 있다.
 - [ ]  정책 목록을 서버에서 조회할 수 있다.
 - [ ]  실제 공고문 1건 이상이 표준 PolicyCondition JSON으로 저장된다.
 - [ ]  구조화된 조건에는 원문 근거가 포함된다.
@@ -257,61 +263,61 @@ v3.0 원칙: **v2.0의 짧고 현실적인 일정 + v1.0의 명확한 기술 책
 
 #### 9/12 ~ 9/14
 
-- [ ]  UserProfile ↔ PolicyCondition Mapping 규칙 구현
-- [ ]  연령·지역·거주기간·소득·학력·취업 기본 Rule 구현
-- [ ]  PASS / FAIL / UNKNOWN 판정
-- [ ]  EligibilityResult 저장/API
+- [x]  UserProfile ↔ PolicyCondition Mapping 규칙 구현
+- [x]  연령·지역·거주기간·소득·학력·취업 기본 Rule 구현
+- [x]  PASS / FAIL / UNKNOWN 판정
+- [ ]  EligibilityResult 저장/API — API는 구현됨. judgement_run 결과 영속 저장 경로가 확인되지 않아 미체크.
 
 #### 9/15 ~ 9/16
 
-- [ ]  FUTURE_PASS 계산기 구현
-- [ ]  age / residence 등 날짜 기반 예상 충족일 계산
-- [ ]  Source Evidence 전달
+- [x]  FUTURE_PASS 계산기 구현
+- [x]  age / residence 등 날짜 기반 예상 충족일 계산
+- [x]  Source Evidence 전달
 
 #### 9/17
 
-- [ ]  AI Response Validation
-- [ ]  Timeout / Parsing 실패 예외처리
-- [ ]  FE 통합 테스트
+- [x]  AI Response Validation
+- [x]  Timeout / Parsing 실패 예외처리
+- [ ]  FE 통합 테스트 — BE CI의 CORS 검사와 실제 FE 브라우저 통합은 별개.
 
 ### 🤖 AI
 
 #### 9/12 ~ 9/14
 
-- [ ]  애매한 조건과 명확한 조건 구분
-- [ ]  구조화 누락 조건 점검
-- [ ]  판정 결과 설명문 Template 작성
+- [x]  애매한 조건과 명확한 조건 구분
+- [x]  구조화 누락 조건 점검 — needs_review/unrepresentable 필드 기록
+- [x]  판정 결과 설명문 Template 작성
 
 #### 9/15 ~ 9/16
 
-- [ ]  PASS/FAIL 사유 자연어 설명 생성
-- [ ]  FUTURE_PASS 사유·시점 설명 생성
-- [ ]  원문 인용과 설명 내용 일치 검증
+- [x]  PASS/FAIL 사유 자연어 설명 생성
+- [ ]  FUTURE_PASS 사유·시점 설명 생성 — 날짜 계산과 최종 판정은 BE 책임
+- [x]  원문 인용과 설명 내용 일치 검증
 
 #### 9/17
 
-- [ ]  대표 정책 수동 정답표와 결과 비교
-- [ ]  오Parsing/오설명 수정
+- [x]  대표 정책 수동 정답표와 결과 비교 — golden sheet 5건 기준
+- [x]  오Parsing/오설명 수정 — golden·quote 검증 회귀 테스트 반영
 
 ### 💻 Frontend
 
 #### 9/12 ~ 9/14
 
-- [ ]  결과 Dashboard
-- [ ]  정책 카드
-- [ ]  4개 상태 Badge/필터
+- [x]  결과 Dashboard
+- [x]  정책 카드
+- [x]  4개 상태 Badge/필터
 
 #### 9/15 ~ 9/16
 
-- [ ]  정책 상세
-- [ ]  조건별 충족/미충족 표시
-- [ ]  판정 이유·원문 근거 표시
-- [ ]  향후 가능 시점 표시
+- [x]  정책 상세
+- [x]  조건별 충족/미충족 표시
+- [x]  판정 이유·원문 근거 표시
+- [x]  향후 가능 시점 표시
 
 #### 9/17
 
-- [ ]  실제 판정 API 연결
-- [ ]  Loading / Empty / Error 확인
+- [x]  실제 판정 API 연결
+- [x]  Loading / Empty / Error 확인
 
 ### 🎨 Design · Planning
 
@@ -322,8 +328,8 @@ v3.0 원칙: **v2.0의 짧고 현실적인 일정 + v1.0의 명확한 기술 책
 
 - [ ]  사용자 입력 → 정책 조회 → Rule Engine 판정 → Dashboard가 연결된다.
 - [ ]  같은 입력에 같은 판정 결과가 나온다.
-- [ ]  정책 상세에서 판정 이유와 원문 근거를 확인할 수 있다.
-- [ ]  FUTURE_PASS에는 예상 가능 시점이 표시된다.
+- [x]  정책 상세에서 판정 이유와 원문 근거를 확인할 수 있다.
+- [x]  FUTURE_PASS에는 예상 가능 시점이 표시된다.
 
 ---
 
@@ -337,10 +343,10 @@ v3.0 원칙: **v2.0의 짧고 현실적인 일정 + v1.0의 명확한 기술 책
 
 #### 9/18 ~ 9/19
 
-- [ ]  UNKNOWN 원인에서 부족 필드 추출
-- [ ]  사용자 친화적 추가 질문 생성
-- [ ]  동일 정보 질문 중복 제거
-- [ ]  사용자 답변 정규화 규칙
+- [ ]  UNKNOWN 원인에서 부족 필드 추출 — 현재 통합 dev의 질문 큐 범위와 AI 브랜치 작업을 분리해 확인 필요
+- [ ]  사용자 친화적 추가 질문 생성 — 현재 통합 dev의 질문 큐 범위와 AI 브랜치 작업을 분리해 확인 필요
+- [ ]  동일 정보 질문 중복 제거 — 현재 통합 dev의 질문 큐 범위와 AI 브랜치 작업을 분리해 확인 필요
+- [x]  사용자 답변 정규화 규칙 — 자연어 percent/count/months/bool/enum 변환 및 불확실 값 보류
 
 #### 9/20
 
@@ -348,49 +354,49 @@ v3.0 원칙: **v2.0의 짧고 현실적인 일정 + v1.0의 명확한 기술 책
 
 #### 9/21 ~ 9/22
 
-- [ ]  중복수혜 문구에서 정책 간 상충 관계 추출
-- [ ]  explicit / categoryOverlap / ambiguous 정도로 단순 구조화
-- [ ]  Conflict 근거 원문 반환
+- [x]  중복수혜 문구에서 정책 간 상충 관계 추출
+- [x]  explicit / categoryOverlap / ambiguous 정도로 단순 구조화
+- [x]  Conflict 근거 원문 반환
 
 ### 🛠️ Backend
 
 #### 9/18 ~ 9/19
 
-- [ ]  AIQuestion 조회 API
-- [ ]  UserAnswer 저장 API
-- [ ]  답변을 UserProfile/Context에 반영
+- [x]  AIQuestion 조회 API
+- [x]  UserAnswer 저장 API — 별도 답변 엔드포인트 대신 세션 PUT의 profile.answers로 저장.
+- [x]  답변을 UserProfile/Context에 반영
 
 #### 9/20
 
-- [ ]  증분 재판정 Pipeline
-- [ ]  이전/현재 판정 Version 관리
+- [ ]  증분 재판정 Pipeline — 현재는 답변을 반영한 전체 재판정. 증분 처리는 명시적으로 미도입.
+- [ ]  이전/현재 판정 Version 관리 — snapshot_version/ETag는 있지만 사용자별 판정 이력 관리와 다름.
 
 #### 9/21 ~ 9/22
 
-- [ ]  PolicyConflict 저장
-- [ ]  Conflict Matrix 생성
-- [ ]  동시에 받을 수 없는 조합 제거
-- [ ]  P0용 단순 최대혜택 조합 계산
-- [ ]  Combination API
+- [x]  PolicyConflict 저장 — 정책 JSON/스냅샷에 보존. DB 쓰기 경로 완료를 뜻하지 않음.
+- [x]  Conflict Matrix 생성
+- [x]  동시에 받을 수 없는 조합 제거
+- [x]  P0용 단순 최대혜택 조합 계산
+- [x]  Combination API
 
 ### 💻 Frontend
 
 #### 9/18 ~ 9/19
 
-- [ ]  AI 역질문 화면
+- [x]  AI 역질문 화면
 - [ ]  예/아니오·선택·숫자·날짜 질문
-- [ ]  모르겠음/건너뛰기
+- [x]  모르겠음/건너뛰기
 
 #### 9/20
 
-- [ ]  답변 제출 후 재판정 Loading 및 결과 갱신
+- [x]  답변 제출 후 재판정 Loading 및 결과 갱신
 
 #### 9/21 ~ 9/22
 
-- [ ]  정책 조합 추천 화면
-- [ ]  중복수혜 가능/불가 표시
-- [ ]  충돌 정책 및 사유·원문 근거 표시
-- [ ]  추천 조합 1개 이상 표시
+- [x]  정책 조합 추천 화면
+- [x]  중복수혜 가능/불가 표시
+- [x]  충돌 정책 및 사유·원문 근거 표시
+- [x]  추천 조합 1개 이상 표시
 
 ### 🎨 Design · Planning
 
@@ -416,48 +422,48 @@ v3.0 원칙: **v2.0의 짧고 현실적인 일정 + v1.0의 명확한 기술 책
 
 #### 9/23 ~ 9/24
 
-- [ ]  필요서류 추출 정제
-- [ ]  서류명 표기 흔들림 정규화
-- [ ]  설명문 Hallucination 점검
+- [x]  필요서류 추출 정제
+- [x]  서류명 표기 흔들림 정규화 — master alias와 canonical name 일치 검증
+- [x]  설명문 Hallucination 점검 — 원문 인용 대조·quote gate 확인
 
 #### 9/25 ~ 9/26
 
-- [ ]  Parsing Agent A/B 또는 검증 Agent 최소 교차검증
-- [ ]  중요 필드 불일치 시 needsReview/UNKNOWN 반환
+- [x]  Parsing Agent A/B 또는 검증 Agent 최소 교차검증
+- [x]  중요 필드 불일치 시 needsReview/UNKNOWN 반환
 
 ### 🛠️ Backend
 
 #### 9/23 ~ 9/24
 
-- [ ]  RequiredDocument 저장/조회
-- [ ]  P0용 주요 서류 발급기간 Master 구성
+- [x]  RequiredDocument 저장/조회 — 정책/서류 마스터 파일과 계획 API 기준.
+- [x]  P0용 주요 서류 발급기간 Master 구성
 
 #### 9/25
 
-- [ ]  신청 마감일 - 발급 소요일 - 안전 Buffer 방식의 일정 역산
-- [ ]  ApplicationSchedule API
+- [x]  신청 마감일 - 발급 소요일 - 안전 Buffer 방식의 일정 역산
+- [x]  ApplicationSchedule API
 
 #### 9/26
 
-- [ ]  전체 로그/Error Handling 정리
-- [ ]  핵심 E2E 데이터 흐름 점검
+- [x]  전체 로그/Error Handling 정리
+- [x]  핵심 E2E 데이터 흐름 점검 — BE TestClient·고정 데이터 CI 기준. FE 브라우저/배포 통합은 미완료.
 
 ### 💻 Frontend
 
 #### 9/23 ~ 9/24
 
-- [ ]  필요서류 Checklist
-- [ ]  발급처·예상 소요일 표시
+- [x]  필요서류 Checklist
+- [x]  발급처·예상 소요일 표시
 
 #### 9/25
 
-- [ ]  신청 Timeline
-- [ ]  준비 시작일·권장 신청일·마감일 표시
+- [x]  신청 Timeline
+- [x]  준비 시작일·권장 신청일·마감일 표시
 
 #### 9/26
 
-- [ ]  전체 API 실연동
-- [ ]  Loading / Error / Empty 상태 통일
+- [x]  전체 API 실연동
+- [x]  Loading / Error / Empty 상태 통일
 - [ ]  반응형 핵심 화면 점검
 
 ### 🎨 Design · Planning
@@ -489,8 +495,8 @@ v3.0 원칙: **v2.0의 짧고 현실적인 일정 + v1.0의 명확한 기술 책
 
 ### Frontend
 
-- [ ]  핵심 화면 UI 깨짐 점검
-- [ ]  모바일/데스크톱 기본 반응형 점검
+- [x]  핵심 화면 UI 깨짐 점검 — Playwright(임시 설치, 프로젝트 의존성 아님)로 Mock·API 모드 결과/프로필/질문/조합/일정 화면과 로그인·회원가입 모달을 실제 렌더링해 확인. 실제 버그 2건 발견·수정: (1) 히어로 제목의 수동 `<br>`이 좁은 화면에서 글자 하나만 남는 고아 줄을 만듦 → 고정 줄바꿈 제거 + `word-break:keep-all`로 자연스러운 단어 단위 줄바꿈 적용, (2) API 모드에서 라이브 대시보드의 판정 근거·조합 상세 오버레이의 조건 행이 `.api-mode .condition{display:block}` 규칙에 덮여 그리드가 깨지며 텍스트가 다 붙어 보이던 버그 → `.reference-dashboard` 안에서는 그리드를 복원
+- [x]  모바일/데스크톱 기본 반응형 점검 — 320~1440px 폭 스윕(각 핵심 라우트)에서 가로 스크롤/overflow 0건 확인. 로그인·회원가입 버튼 추가 후에도 상단 네비게이션 줄바꿈 없이 정상 표시됨을 실측으로 확인
 
 ### Backend
 

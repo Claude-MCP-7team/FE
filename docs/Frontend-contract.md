@@ -1,6 +1,13 @@
 # Frontend MVP 인터페이스 계약 초안
 
-갱신일: 2026-09-13 · Final MVP PRD / Milestone v3 반영 · **BE/AI 합의 전**
+갱신일: 2026-09-19 · Final MVP PRD / Milestone v3 반영 · **일부 계약 반영, 미결 항목 존재**
+
+## 현재 구현에 반영한 계약
+
+- Profile은 `/v1/sessions` 및 BE `core/history/answers/consent`를 사용한다. 필수값·enum·지역의 반영 범위는 [Profile API](Profile-api.md)를 따른다.
+- 판정 클라이언트는 동기 `POST /v1/judge?include=all`의 직접 페이로드를 사용한다. 정책 verdict 3종과 confidence를 분리해 보존하며, 조건은 matched/unmatched/unknown과 조건별 satisfiable_from으로 4상태를 표시한다. FE가 정책 전체 미래 가능일을 계산하지 않는다. [판정 API 계약·검증 범위](Judgement-api.md)를 따른다.
+- `askable`은 AI→BE 필드이며 FE가 질문을 생성하지 않는다. 실제 질문 화면 연결은 후속 작업이다.
+- 아래 9/13 제안 중 FUTURE_PASS 배열 위치·askable·비동기 polling·`/api/analyses` 및 envelope 제안은 현재 구현 기준이 아닌 당시 논의 기록이다. 현재 구현에는 위 연결 문서가 우선한다. 정책 전체 4분류·소득 입력·동의 수집 등 미결 항목은 계속 합의가 필요하다.
 
 범위: M0에서 합의할 MVP 전체 인터페이스(입력·판정·근거·질문·조합·서류·일정)를 다룬다. M0 구현 현황은 아래 기존 Mock 설명과 구분하며, 문서에 포함됐다는 이유로 해당 기능 구현이나 계약 합의가 완료된 것은 아니다.
 

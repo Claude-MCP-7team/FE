@@ -7,6 +7,20 @@ export const choices = {
   marital_status: [['single', '미혼'], ['married', '기혼'], ['other', '기타']],
   policy_history: [['none', '없음'], ['yes', '있음']],
 };
+// Five-digit district codes, verified against code.go.kr. Used by UI and API together.
+export const serverRegions = Object.freeze({
+  '41461': '경기도 용인시 처인구',
+  '41463': '경기도 용인시 기흥구',
+  '41465': '경기도 용인시 수지구',
+});
+// Confirmed BE enums; keep non-region options aligned with profile-api.js enumMap.
+export const serverChoices = {
+  ...choices,
+  region: Object.entries(serverRegions),
+  education: [['middle_or_below', '중학교 졸업 이하'], ['high_school_enrolled', '고등학교 재학'], ['high_school_graduated', '고등학교 졸업'], ['enrolled', '대학교 재학'], ['graduated', '대학교 졸업'], ['graduate_school', '대학원']],
+  employment_status: [['employed', '재직 중'], ['unemployed', '구직 중'], ['student', '학생'], ['self-employed', '창업·자영업'], ['neet', '미취업·비구직']],
+  marital_status: [['single', '미혼'], ['married', '기혼'], ['divorced', '이혼'], ['widowed', '사별']],
+};
 export const fields = ['birth_date', 'region', 'residence_start_date', 'education', 'employment_status', 'employment_type', 'personal_income', 'household_income', 'household_size', 'marital_status', 'policy_history'];
 export const emptyProfile = () => Object.fromEntries(fields.map(key => [key, '']));
 export function todayLocal(date = new Date()) {
@@ -18,18 +32,19 @@ function validDate(value) {
   const leap = year % 4 === 0 && (year % 100 !== 0 || year % 400 === 0);
   return year > 0 && month > 0 && month <= 12 && day > 0 && day <= [31, leap ? 29 : 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31][month - 1];
 }
-export function validateProfile(input, today = todayLocal()) {
+export function validateProfile(input, today = todayLocal(), { choiceSets = choices, requireResidence = true } = {}) {
   const value = emptyProfile();
   for (const key of fields) value[key] = String(input?.[key] ?? '').trim();
   const errors = {};
   for (const key of ['birth_date', 'residence_start_date']) {
+    if (key === 'residence_start_date' && !requireResidence && !value[key]) continue;
     if (!value[key]) errors[key] = '날짜를 입력해 주세요.';
     else if (!validDate(value[key])) errors[key] = '실제로 존재하는 날짜를 입력해 주세요.';
     else if (value[key] > today) errors[key] = '오늘 이후 날짜는 입력할 수 없어요.';
   }
-  if (!errors.birth_date && !errors.residence_start_date && value.residence_start_date < value.birth_date) errors.residence_start_date = '거주 시작일은 생년월일 이후여야 해요.';
+  if (!errors.birth_date && !errors.residence_start_date && value.residence_start_date && value.residence_start_date < value.birth_date) errors.residence_start_date = '거주 시작일은 생년월일 이후여야 해요.';
   if (!value.region) errors.region = '거주지역을 선택해 주세요.';
-  for (const [key, options] of Object.entries(choices)) {
+  for (const [key, options] of Object.entries(choiceSets)) {
     if (value[key] && !options.some(([id]) => id === value[key])) errors[key] = '목록에서 다시 선택해 주세요.';
   }
   for (const key of ['personal_income', 'household_income', 'household_size']) {
