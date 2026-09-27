@@ -27,7 +27,9 @@ export function mountReferenceDashboard(root, { page = 'results' } = {}) {
   const updateHero = () => {
     const name = saved?.userName?.trim() || '김유진';
     const title = find('.hero h1');
-    title.replaceChildren(document.createTextNode(`${name}님, 받을 수 있는 정책을`), document.createElement('br'), document.createTextNode('실행 계획으로 만들었어요.'));
+    // No forced <br>: at narrow widths the line before it already wraps on its own,
+    // so a hardcoded break produced a second, orphaned line (e.g. a lone "을").
+    title.textContent = `${name}님, 받을 수 있는 정책을 실행 계획으로 만들었어요.`;
     document.querySelector('.profile').textContent = name.slice(0, 1);
   };
   const populate = () => {
