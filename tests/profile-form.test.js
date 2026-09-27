@@ -120,3 +120,31 @@ test('server form labels district codes precisely and flags preserved broad code
     }
   }
 });
+
+// employment_type has no BE contract field, so repository.validate() always
+// rejects it (see tests/profile-repository.test.js). Rendering it as a normal
+// dropdown in server mode was a dead end: any real choice blocked saving with no
+// way to tell which field caused it beyond a shared error list. Removed instead,
+// matching the already-decided scope in issue #2 (FE#29).
+test('the server form omits employment_type entirely -- there is no BE field to save it to', async t => {
+  const previousDocument = globalThis.document;
+  globalThis.document = { createElement: element };
+  t.after(() => { globalThis.document = previousDocument; });
+  const repository = createProfileRepository({ get: async () => null });
+  const surface = formSurface();
+  await mountProfile(surface.container, { server: true, repository }).ready;
+  assert.doesNotMatch(surface.container.innerHTML, /name="employment_type"/);
+  assert.doesNotMatch(surface.container.innerHTML, /근로 형태/);
+});
+
+test('the draft (mock) form still offers employment_type -- BE contract is not involved there', async t => {
+  const previousDocument = globalThis.document;
+  globalThis.document = { createElement: element };
+  t.after(() => { globalThis.document = previousDocument; });
+  const previousWindow = globalThis.window;
+  globalThis.window = { sessionStorage: { getItem: () => null, setItem() {}, removeItem() {} } };
+  t.after(() => { globalThis.window = previousWindow; });
+  const surface = formSurface();
+  mountProfile(surface.container, { server: false });
+  assert.match(surface.container.innerHTML, /name="employment_type"/);
+});
