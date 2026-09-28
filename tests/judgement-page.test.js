@@ -76,6 +76,7 @@ test('detail renders four condition states, evidence links and review contact wi
   const malicious = structuredClone(view.results[2]);
   malicious.explanation = '<img src=x onerror=alert(1)>';
   malicious.policy_id = '<script>alert(1)</script>';
+  malicious.title = null; // falls back to the (hostile) id -- must still be escaped, not just omitted
   const safe = renderJudgementDetail(malicious);
   assert.doesNotMatch(safe, /<script>alert/);
   assert.match(safe, /&lt;script&gt;/);
@@ -88,24 +89,29 @@ test('unknown detail and empty dashboard are explicit states', () => {
 });
 
 test('a policy name is shown when BE sends one, an identifier when it does not', () => {
+  // BE now always sends a title (judgement-contract.js requires it), so "no
+  // title" is defensive-only rendering code. A response actually missing it
+  // would be rejected by toJudgementView itself -- simulated here with a
+  // post-validation mutation instead.
   const withoutTitle = toJudgementView(structuredClone(fixture));
+  withoutTitle.results[0].title = null;
   const bare = renderJudgementDashboard(withoutTitle);
-  // No name available: the id is marked as an identifier, never set as a plain heading.
   assert.match(bare, /<h2><code class="policy-ref">TEST-ELIGIBLE<\/code><\/h2>/);
 
-  const named = structuredClone(fixture);
-  named.results[0].title = '청년 도약 지원';
-  const html = renderJudgementDashboard(toJudgementView(named));
-  assert.match(html, /<h2>청년 도약 지원<\/h2>/);
+  const html = renderJudgementDashboard(toJudgementView(structuredClone(fixture)));
+  assert.match(html, /<h2>테스트 정책 일<\/h2>/);
   assert.doesNotMatch(html, /<h2><code class="policy-ref">TEST-ELIGIBLE/);
   // The link still targets the id, which is what the route needs.
   assert.match(html, /href="#\/policies\/TEST-ELIGIBLE"/);
 });
 
 test('a blank or hostile title falls back and never injects markup', () => {
-  const blank = structuredClone(fixture);
-  blank.results[0].title = '   ';
-  assert.match(renderJudgementDashboard(toJudgementView(blank)), /<code class="policy-ref">TEST-ELIGIBLE<\/code>/);
+  // Whitespace-only title is now a contract violation (see
+  // judgement-contract.test.js) that BE could never actually send; this checks
+  // the renderer's own defensive fallback in case one got through some other way.
+  const blankView = toJudgementView(structuredClone(fixture));
+  blankView.results[0].title = '   ';
+  assert.match(renderJudgementDashboard(blankView), /<code class="policy-ref">TEST-ELIGIBLE<\/code>/);
 
   const hostile = structuredClone(fixture);
   hostile.results[0].title = '<script>alert(1)</script>';

@@ -206,20 +206,17 @@ function comboBody(combination) {
 // Same shell as mountReferenceDashboard, fed by live judgement/combination/plan data
 // instead of the fixed demo. Combination and plan load independently of judgement so
 // a slow or failed side panel never blocks the policy list the user came here for.
-export function mountLiveDashboard(root, { judgement, filter: initialFilter = 'all', profileApi, combinationApi, planApi, policiesApi, onReanalyze, onFilterChange } = {}) {
+export function mountLiveDashboard(root, { judgement, filter: initialFilter = 'all', profileApi, combinationApi, planApi, onReanalyze, onFilterChange } = {}) {
   const controller = new AbortController();
   const { signal } = controller;
   let filter = initialFilter;
   let combination = { state: 'loading' };
   let documents = { state: 'loading', items: [] };
   let plan = { state: 'loading' };
-  // Metadata enrichment only (title/amount/deadline) -- an empty catalog just
-  // falls back to policy_id/"금액 미정", it never blocks the judgement itself.
-  let catalog = new Map();
   const checkedDocuments = new Set();
 
   const render = () => {
-    root.innerHTML = renderLiveDashboard({ judgement, filter, combination, documents, plan, catalog });
+    root.innerHTML = renderLiveDashboard({ judgement, filter, combination, documents, plan });
     bind();
   };
 
@@ -246,7 +243,7 @@ export function mountLiveDashboard(root, { judgement, filter: initialFilter = 'a
     root.querySelectorAll('.detail-btn').forEach(button => button.addEventListener('click', () => {
       const result = judgement.results.find(item => item.policy_id === button.dataset.policyId);
       if (!result) return;
-      root.querySelector('#detailTitle').textContent = result.title?.trim() || catalog.get(result.policy_id)?.title || result.policy_id;
+      root.querySelector('#detailTitle').textContent = result.title?.trim() || result.policy_id;
       root.querySelector('#detailBadge').className = `badge ${{ PASS: 'pass', FAIL: 'fail', UNKNOWN: 'ask', FUTURE_PASS: 'future' }[result.status] ?? 'ask'}`;
       root.querySelector('#detailBadge').textContent = `${statuses[result.status].symbol} ${statuses[result.status].label}`;
       root.querySelector('#detailBody').innerHTML = detailBody(result);
@@ -302,16 +299,6 @@ export function mountLiveDashboard(root, { judgement, filter: initialFilter = 'a
     render();
   }
 
-  async function loadCatalog() {
-    if (!policiesApi) return;
-    try {
-      const items = await policiesApi.list({ signal });
-      if (signal.aborted) return;
-      catalog = new Map(items.map(item => [item.policy_id, item]));
-      render();
-    } catch { /* title/amount/deadline just fall back to id/"금액 미정"; no retry UI needed. */ }
-  }
-
   document.addEventListener('keydown', event => {
     const modal = root.querySelector('.overlay.open');
     if (!modal) return;
@@ -326,6 +313,5 @@ export function mountLiveDashboard(root, { judgement, filter: initialFilter = 'a
   render();
   loadCombination();
   loadPlan();
-  loadCatalog();
   return { destroy() { controller.abort(); closeOverlays(); } };
 }
