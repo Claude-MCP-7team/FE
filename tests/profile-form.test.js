@@ -97,8 +97,11 @@ test('server form exposes confirmed choices and focuses visible field errors bef
   assert.match(html, /value="widowed"/);
   assert.doesNotMatch(html, /value="on-leave"/);
   const residenceInput = html.match(/<input[^>]*name="residence_start_date"[^>]*>/)[0];
+  assert.match(residenceInput, /type="date"/);
   assert.doesNotMatch(residenceInput, /\brequired\b/);
-  assert.match(html.match(/<input[^>]*name="birth_date"[^>]*>/)[0], /\brequired\b/);
+  const birthInput = html.match(/<input[^>]*name="birth_date"[^>]*>/)[0];
+  assert.match(birthInput, /type="date"/);
+  assert.match(birthInput, /\brequired\b/);
   await surface.get('form').listeners.submit({ preventDefault() {} });
   assert.equal(writes, 0);
   assert.equal(surface.get('#pf-errors').hidden, false);
