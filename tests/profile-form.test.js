@@ -80,11 +80,11 @@ test('a genuine shared read failure is visible and the form retry recovers', asy
   assert.equal(second.get('form').elements.namedItem('birth_date').disabled, false);
 });
 
-test('server form exposes confirmed choices and focuses field errors before any save request', async t => {
+test('server form exposes confirmed choices and focuses visible field errors before any save request', async t => {
   const previousDocument = globalThis.document;
   const previousFormData = globalThis.FormData;
   globalThis.document = { createElement: element };
-  const input = { birth_date: '2000-01-01', region: '41465', residence_start_date: '', personal_income: '0' };
+  const input = { birth_date: '', region: '41465', residence_start_date: '' };
   globalThis.FormData = class { constructor() { return Object.entries(input); } };
   t.after(() => { globalThis.document = previousDocument; globalThis.FormData = previousFormData; });
   let writes = 0;
@@ -102,11 +102,11 @@ test('server form exposes confirmed choices and focuses field errors before any 
   await surface.get('form').listeners.submit({ preventDefault() {} });
   assert.equal(writes, 0);
   assert.equal(surface.get('#pf-errors').hidden, false);
-  assert.match(surface.get('#pf-errors').innerHTML, /data-pf-focus="personal_income"/);
-  assert.match(surface.get('#pf-personal_income-error').textContent, /비워두세요/);
+  assert.match(surface.get('#pf-errors').innerHTML, /data-pf-focus="birth_date"/);
+  assert.match(surface.get('#pf-birth_date-error').textContent, /입력해/);
   let focused = false;
-  surface.get('form').elements.namedItem('personal_income').focus = () => { focused = true; };
-  surface.get('#pf-errors').listeners.click({ preventDefault() {}, target: { closest: () => ({ dataset: { pfFocus: 'personal_income' } }) } });
+  surface.get('form').elements.namedItem('birth_date').focus = () => { focused = true; };
+  surface.get('#pf-errors').listeners.click({ preventDefault() {}, target: { closest: () => ({ dataset: { pfFocus: 'birth_date' } }) } });
   assert.equal(focused, true);
 });
 
@@ -145,6 +145,9 @@ test('the server form omits employment_type entirely -- there is no BE field to 
   const surface = formSurface();
   await mountProfile(surface.container, { server: true, repository }).ready;
   assert.doesNotMatch(surface.container.innerHTML, /name="employment_type"/);
+  assert.doesNotMatch(surface.container.innerHTML, /name="personal_income"/);
+  assert.doesNotMatch(surface.container.innerHTML, /name="household_income"/);
+  assert.doesNotMatch(surface.container.innerHTML, /name="policy_history"/);
   assert.doesNotMatch(surface.container.innerHTML, /근로 형태/);
 });
 
