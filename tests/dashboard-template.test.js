@@ -45,6 +45,17 @@ test('renders policy cards with the reference dashboard lowercase badge classes 
   assert.match(html, /<div class="value">3개<\/div>/);
 });
 
+test('live dashboard keeps the reference hero layout and summary supporting copy', () => {
+  const view = toJudgementView(structuredClone(fixture));
+  const html = renderLiveDashboard({ judgement: view, filter: 'all', combination: loading, documents: loading, plan: loading });
+  assert.match(html, /<div class="eyebrow">청년 서랍<\/div>/);
+  assert.match(html, /총 분석 정책/);
+  assert.match(html, /현재 조건으로 신청할 수 있어요/);
+  assert.match(html, /조건을 충족하면 신청할 수 있어요/);
+  assert.match(html, /답변하면 즉시 다시 판정해요/);
+  assert.match(html, /class="hero-actions"/);
+});
+
 test('the needs-info banner is absent once nothing is left to ask', () => {
   const clean = structuredClone(fixture);
   clean.results = clean.results.filter(result => result.verdict !== 'NEEDS_INFO');
