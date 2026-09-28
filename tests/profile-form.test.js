@@ -23,8 +23,19 @@ function formSurface() {
   const form = get('form');
   form.querySelector = get;
   form.querySelectorAll = () => [...controls.values()];
-  form.elements = { namedItem: key => controls.get(key) };
-  return { container: { querySelector: get }, get };
+  // namedItem must return null for a field the markup never rendered (e.g.
+  // employment_type in server mode) -- a mock that always hands back a fake
+  // control here would hide a real "form.elements.namedItem(key).removeAttribute
+  // is not a function on null" crash. rendered starts as "everything" so it
+  // doesn't affect tests that never inspect container.innerHTML.
+  let rendered = new Set(fields);
+  form.elements = { namedItem: key => (rendered.has(key) ? controls.get(key) : null) };
+  const container = {
+    querySelector: get,
+    get innerHTML() { return this._html; },
+    set innerHTML(value) { this._html = value; rendered = new Set(fields.filter(key => value.includes(`name="${key}"`))); },
+  };
+  return { container, get };
 }
 
 test('remounting the actual form shares a pending read without showing a false failure', async t => {
@@ -135,6 +146,22 @@ test('the server form omits employment_type entirely -- there is no BE field to 
   await mountProfile(surface.container, { server: true, repository }).ready;
   assert.doesNotMatch(surface.container.innerHTML, /name="employment_type"/);
   assert.doesNotMatch(surface.container.innerHTML, /근로 형태/);
+});
+
+test('submitting the server form actually saves -- clicking save must not silently no-op because employment_type is gone from the DOM', async t => {
+  const previousDocument = globalThis.document;
+  const previousFormData = globalThis.FormData;
+  globalThis.document = { createElement: element };
+  const input = { birth_date: '2000-01-01', region: '41465', residence_start_date: '2020-01-01' };
+  globalThis.FormData = class { constructor() { return Object.entries(input); } };
+  t.after(() => { globalThis.document = previousDocument; globalThis.FormData = previousFormData; });
+  let saved = 0;
+  const repository = createProfileRepository({ get: async () => null, upsert: async () => { saved++; } });
+  const surface = formSurface();
+  await mountProfile(surface.container, { server: true, repository }).ready;
+  await surface.get('form').listeners.submit({ preventDefault() {} });
+  assert.equal(saved, 1);
+  assert.equal(surface.get('#pf-status').textContent, '서버에 조건을 저장했어요. 저장한 조건으로 분석을 시작할 수 있습니다.');
 });
 
 test('the draft (mock) form still offers employment_type -- BE contract is not involved there', async t => {

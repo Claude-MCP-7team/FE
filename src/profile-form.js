@@ -56,7 +56,11 @@ export function mountProfile(container, { server = apiBase !== null, repository 
   };
   const clearErrors = () => {
     errorBox.hidden = true; errorBox.replaceChildren();
-    for (const key of Object.keys(labels)) { form.elements.namedItem(key).removeAttribute('aria-invalid'); container.querySelector(`#pf-${key}-error`).textContent = ''; }
+    for (const key of Object.keys(labels)) {
+      const control = form.elements.namedItem(key);
+      if (!control) continue; // employment_type is omitted from the server-mode form entirely
+      control.removeAttribute('aria-invalid'); container.querySelector(`#pf-${key}-error`).textContent = '';
+    }
   };
   const failure = text => { errorBox.textContent = text; errorBox.hidden = false; errorBox.focus(); status.textContent = ''; };
   const load = async () => {
