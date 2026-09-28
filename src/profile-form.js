@@ -10,7 +10,7 @@ function renderField(key, required, options, server) {
   const attrs = `id="pf-${key}" name="${key}" aria-describedby="pf-${key}-hint pf-${key}-error" ${required ? 'required' : ''}`;
   let control;
   if (options[key]) control = `<select ${attrs}><option value="">${required ? '선택해 주세요' : '모름 / 미입력'}</option>${options[key].map(([id, text]) => `<option value="${id}">${text}</option>`).join('')}</select>`;
-  else if (key.endsWith('date')) control = `<input ${attrs} type="date" min="0001-01-01" max="${todayLocal()}">`;
+  else if (['birth_date', 'residence_start_date'].includes(key)) control = `<input ${attrs} type="date" min="0001-01-01" max="${todayLocal()}" autocomplete="bday">`;
   else control = `<input ${attrs} type="text" inputmode="numeric" autocomplete="off" placeholder="모르면 비워두세요">`;
   return `<div class="pf-field"><label for="pf-${key}">${labels[key]}${required ? ' <span class="pf-required">(필수)</span>' : ''}</label>${control}<small id="pf-${key}-hint">${hint}</small><span class="pf-error" id="pf-${key}-error"></span></div>`;
 }
