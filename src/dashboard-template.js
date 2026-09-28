@@ -6,7 +6,7 @@ import { statuses } from './contracts.js';
 export const dashboardTemplate = `<div class="reference-dashboard">
     <section class="hero">
       <div>
-        <div class="eyebrow">My policy dashboard</div>
+        <div class="eyebrow">청년 서랍</div>
         <h1>김유진님, 받을 수 있는 정책을 실행 계획으로 만들었어요.</h1>
         <p>입력한 조건과 공고문 원문을 대조한 결과입니다. 기준일 2026. 09. 04</p>
       </div>
@@ -279,7 +279,7 @@ export function renderLiveDashboard(model) {
   return `<div class="reference-dashboard">
     <section class="hero">
       <div>
-        <div class="eyebrow">My policy dashboard</div>
+        <div class="eyebrow">청년 서랍</div>
         <h1>받을 수 있는 정책을 실행 계획으로 만들었어요.</h1>
         <p>${escape(model.judgement.disclaimer)}</p>
       </div>
@@ -290,10 +290,10 @@ export function renderLiveDashboard(model) {
     </section>
 
     <section class="summary" aria-label="분석 결과 요약">
-      <article class="summary-card main"><div class="label">분석한 정책</div><div class="value">${summary.total}개</div><div class="note">저장한 조건 기준</div></article>
-      <article class="summary-card"><div class="label">지금 신청 가능</div><div class="value">${summary.pass}</div></article>
-      <article class="summary-card"><div class="label">곧 신청 가능</div><div class="value">${summary.future}</div></article>
-      <article class="summary-card"><div class="label">추가 확인 필요</div><div class="value">${summary.ask}</div></article>
+      <article class="summary-card main"><div class="label">총 분석 정책</div><div class="value">${summary.total}개</div><div class="note">저장한 조건 기준</div></article>
+      <article class="summary-card"><div class="label">지금 신청 가능</div><div class="value">${summary.pass}</div><div class="note">현재 조건으로 신청할 수 있어요</div></article>
+      <article class="summary-card"><div class="label">곧 신청 가능</div><div class="value">${summary.future}</div><div class="note">조건을 충족하면 신청할 수 있어요</div></article>
+      <article class="summary-card"><div class="label">추가 확인 필요</div><div class="value">${summary.ask}</div><div class="note">답변하면 즉시 다시 판정해요</div></article>
     </section>
 
     ${needsInfo}
