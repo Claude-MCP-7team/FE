@@ -182,16 +182,16 @@ export const dashboardTemplate = `<div class="reference-dashboard">
 // invented — see docs/Design-states.md.
 const badgeClass = { PASS: 'pass', FAIL: 'fail', UNKNOWN: 'ask', FUTURE_PASS: 'future' };
 const filterOptions = [['all', '전체'], ['PASS', statuses.PASS.label], ['FUTURE_PASS', statuses.FUTURE_PASS.label], ['UNKNOWN', statuses.UNKNOWN.label]];
-// judge results don't carry a title; the catalog (meta, keyed by policy_id) does.
-// Falls back to the id itself -- never invents a name (see FE issue #29).
-const policyName = (result, meta) => (result.title?.trim() ? escape(result.title) : meta?.title ? escape(meta.title) : `<code class="policy-ref">${escape(result.policy_id)}</code>`);
+// title is a required field on /v1/judge results as of BE issue #8. The fallback
+// to the id is defensive-only (contract violation), never a fabricated name.
+const policyName = result => (result.title?.trim() ? escape(result.title) : `<code class="policy-ref">${escape(result.policy_id)}</code>`);
 const money = value => `${new Intl.NumberFormat('ko-KR').format(value)}원`;
-// amount_krw/estimated_total_krw are both genuinely nullable in the catalog (per-school
-// fees, unpriced services) -- shown as "금액 미정" rather than 0 or omitted entirely.
-function amountText(meta) {
-  const value = meta?.estimated_total_krw ?? meta?.amount_krw;
+// amount_krw/estimated_total_krw are both genuinely nullable (per-school fees,
+// unpriced services) -- shown as "금액 미정" rather than 0 or omitted entirely.
+function amountText(result) {
+  const value = result.estimated_total_krw ?? result.amount_krw;
   if (value == null) return '금액 미정';
-  return `최대 ${money(value)}${meta.amount_confidence && meta.amount_confidence !== 'CONFIRMED' ? ' (추정)' : ''}`;
+  return `최대 ${money(value)}${result.amount_confidence && result.amount_confidence !== 'CONFIRMED' ? ' (추정)' : ''}`;
 }
 // apply_end is a KST calendar date from a Korea-only service; reading it against
 // new Date()'s ambient (viewer) timezone can be off by a day for anyone not on
@@ -203,12 +203,11 @@ function daysUntilKst(dateStr) {
   const [y2, m2, d2] = dateStr.split('-').map(Number);
   return Math.round((Date.UTC(y2, m2 - 1, d2) - Date.UTC(y1, m1 - 1, d1)) / 86400000);
 }
-function deadlineText(meta) {
-  if (!meta) return null;
-  if (meta.is_rolling) return '상시 신청';
-  if (!meta.apply_end) return null;
-  const days = daysUntilKst(meta.apply_end);
-  const date = meta.apply_end.replaceAll('-', '.').slice(5);
+function deadlineText(result) {
+  if (result.is_rolling) return '상시 신청';
+  if (!result.apply_end) return null;
+  const days = daysUntilKst(result.apply_end);
+  const date = result.apply_end.replaceAll('-', '.').slice(5);
   return days < 0 ? `${date} 마감` : days === 0 ? '오늘 마감' : `D-${days} · ${date} 마감`;
 }
 
@@ -222,12 +221,16 @@ export function liveFilteredResults(judgement, filter = 'all') {
   return judgement.results.filter(result => filter === 'all' || result.status === filter);
 }
 
-function policyCard(result, meta) {
+function policyCard(result) {
   const future = result.future_eligible_from ? `<span>예상 충족일 ${escape(result.future_eligible_from)}</span>` : '';
-  const deadline = deadlineText(meta);
+  const deadline = deadlineText(result);
+  // No apply_end and not rolling means BE has no period info at all for this
+  // policy -- point at the source instead of a blank/guessed deadline (BE issue #8).
+  const deadlineArea = deadline ? `<div class="deadline">${escape(deadline)}</div>`
+    : result.origin_url ? `<a class="deadline" href="${escape(result.origin_url)}" target="_blank" rel="noreferrer">신청기간 원문에서 확인 →</a>` : '';
   return `<article class="policy" data-status="${badgeClass[result.status] ?? 'ask'}" data-policy-id="${escape(result.policy_id)}">
-    <div><div class="policy-top"><span class="badge ${badgeClass[result.status] ?? 'ask'}">${statuses[result.status].symbol} ${escape(statuses[result.status].label)}</span>${chip(result.confidence)}</div><h3>${policyName(result, meta)}</h3><div class="meta"><span>${escape(result.explanation || '정책 조건을 확인해 주세요.')}</span>${future}</div></div>
-    <div class="policy-side"><div class="amount">${escape(amountText(meta))}</div>${deadline ? `<div class="deadline">${escape(deadline)}</div>` : ''}<button class="detail-btn" type="button" data-policy-id="${escape(result.policy_id)}">판정 근거 보기 →</button></div>
+    <div><div class="policy-top"><span class="badge ${badgeClass[result.status] ?? 'ask'}">${statuses[result.status].symbol} ${escape(statuses[result.status].label)}</span>${chip(result.confidence)}</div><h3>${policyName(result)}</h3><div class="meta"><span>${escape(result.explanation || '정책 조건을 확인해 주세요.')}</span>${future}</div></div>
+    <div class="policy-side"><div class="amount">${escape(amountText(result))}</div>${deadlineArea}<button class="detail-btn" type="button" data-policy-id="${escape(result.policy_id)}">판정 근거 보기 →</button></div>
   </article>`;
 }
 
@@ -299,7 +302,7 @@ export function renderLiveDashboard(model) {
       <section class="panel">
         <div class="panel-head"><div><h2>나에게 맞는 정책</h2><div class="count">${cards.length}개 정책</div></div></div>
         <div class="filters" role="group" aria-label="정책 상태 필터">${filterOptions.map(([value, label]) => `<button class="filter${filter === value ? ' active' : ''}" data-reference-filter="${value}" aria-pressed="${filter === value}">${escape(label)}</button>`).join('')}</div>
-        <div class="policy-list" id="policyList">${cards.map(result => policyCard(result, model.catalog?.get(result.policy_id))).join('') || '<p class="muted">해당 상태의 정책이 없어요.</p>'}</div>
+        <div class="policy-list" id="policyList">${cards.map(policyCard).join('') || '<p class="muted">해당 상태의 정책이 없어요.</p>'}</div>
       </section>
 
       <aside class="side">

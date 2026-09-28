@@ -12,6 +12,8 @@
       "matched": [{ "rule_id": "AGE", "field": "age", "user_value": 25, "source_quote": "만 19세 이상", "source_url": null }],
       "unmatched": [], "unknown": [], "explanation": null,
       "origin_url": "https://example.org/eligible", "dept_name": null, "dept_tel": null,
+      "title": "테스트 정책 일", "benefit_type": "cash", "amount_krw": 500000, "duration_months": 1, "estimated_total_krw": 500000, "amount_confidence": "CONFIRMED",
+      "apply_start": "2026-09-01", "apply_end": "2099-01-01", "is_rolling": false,
       "disclaimer_required": true
     },
     {
@@ -25,6 +27,8 @@
       ],
       "unknown": [], "explanation": "조건을 충족하지 않습니다.",
       "origin_url": "https://example.org/ineligible", "dept_name": "테스트 부서", "dept_tel": "000-0000-0000",
+      "title": "테스트 정책 이", "benefit_type": "service", "amount_krw": null, "duration_months": null, "estimated_total_krw": 300000, "amount_confidence": "ESTIMATED",
+      "apply_start": null, "apply_end": null, "is_rolling": true,
       "disclaimer_required": true
     },
     {
@@ -35,6 +39,8 @@
       "unknown": [{ "rule_id": "INCOME", "field": "household_income_ratio_median", "source_quote": "기준 중위소득 150% 이하", "source_url": null, "question_template": null }],
       "explanation": null,
       "origin_url": "https://example.org/unknown", "dept_name": "테스트 부서", "dept_tel": "000-0000-0000",
+      "title": "테스트 정책 삼", "benefit_type": null, "amount_krw": null, "duration_months": null, "estimated_total_krw": null, "amount_confidence": null,
+      "apply_start": null, "apply_end": "2020-01-01", "is_rolling": false,
       "disclaimer_required": true
     }
   ]

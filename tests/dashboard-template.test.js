@@ -61,28 +61,17 @@ test('confidence never borrows a status colour and never leaks the raw enum', ()
   assert.doesNotMatch(html, /ESTIMATED|NEEDS_REVIEW|CONFIRMED/);
 });
 
-test('a policy without a BE title is shown as an identifier, not a fabricated name', () => {
+test('a policy without a title is shown as an identifier, not a fabricated name (defensive: BE contract now requires it)', () => {
   const view = toJudgementView(structuredClone(fixture));
+  view.results[0].title = null;
   const html = renderLiveDashboard({ judgement: view, filter: 'all', combination: loading, documents: loading, plan: loading });
   assert.match(html, /<code class="policy-ref">TEST-ELIGIBLE<\/code>/);
 });
 
-test('catalog metadata fills in the title judge results never carry, but a real BE title always wins', () => {
+test('title, amount and deadline are read straight off the judge result -- no separate catalog lookup needed (BE issue #8)', () => {
   const view = toJudgementView(structuredClone(fixture));
-  const catalog = new Map([['TEST-ELIGIBLE', { title: '경기 청년 면접수당', apply_end: null, is_rolling: false, amount_krw: null, estimated_total_krw: null }]]);
-  const html = renderLiveDashboard({ judgement: view, filter: 'PASS', catalog, combination: loading, documents: loading, plan: loading });
-  assert.match(html, /<h3>경기 청년 면접수당<\/h3>/);
-  assert.doesNotMatch(html, /policy-ref/);
-});
-
-test('amount and deadline read from the policy catalog, and a missing amount never becomes 0', () => {
-  const view = toJudgementView(structuredClone(fixture));
-  const catalog = new Map([
-    ['TEST-ELIGIBLE', { title: null, apply_end: '2099-01-01', is_rolling: false, amount_krw: 500000, estimated_total_krw: null, amount_confidence: 'CONFIRMED' }],
-    ['TEST-INELIGIBLE', { title: null, apply_end: null, is_rolling: true, amount_krw: null, estimated_total_krw: 300000, amount_confidence: 'ESTIMATED' }],
-    ['TEST-UNKNOWN', { title: null, apply_end: '2020-01-01', is_rolling: false, amount_krw: null, estimated_total_krw: null, amount_confidence: null }],
-  ]);
-  const html = renderLiveDashboard({ judgement: view, filter: 'all', catalog, combination: loading, documents: loading, plan: loading });
+  const html = renderLiveDashboard({ judgement: view, filter: 'all', combination: loading, documents: loading, plan: loading });
+  assert.match(html, /<h3>테스트 정책 일<\/h3>/);
   assert.match(html, /<div class="amount">최대 500,000원<\/div>/);
   assert.match(html, /<div class="amount">최대 300,000원 \(추정\)<\/div>/);
   assert.match(html, /<div class="amount">금액 미정<\/div>/);
@@ -91,26 +80,24 @@ test('amount and deadline read from the policy catalog, and a missing amount nev
   assert.match(html, /<div class="deadline">01\.01 마감<\/div>/);
 });
 
+test('no apply_end and not rolling links to origin_url instead of a blank or guessed deadline', () => {
+  const view = toJudgementView(structuredClone(fixture));
+  view.results[1].apply_end = null; view.results[1].is_rolling = false; view.results[1].origin_url = 'https://example.org/ineligible';
+  const html = renderLiveDashboard({ judgement: view, filter: 'all', combination: loading, documents: loading, plan: loading });
+  assert.match(html, /<a class="deadline" href="https:\/\/example\.org\/ineligible" target="_blank" rel="noreferrer">신청기간 원문에서 확인 →<\/a>/);
+});
+
 test('deadline boundaries (today, tomorrow, yesterday) are computed on the KST calendar date, not the machine\'s local clock', () => {
   const view = toJudgementView(structuredClone(fixture));
-  const catalog = new Map([
-    ['TEST-ELIGIBLE', { title: null, apply_end: kstDateOffset(0), is_rolling: false, amount_krw: null, estimated_total_krw: null }],
-    ['TEST-INELIGIBLE', { title: null, apply_end: kstDateOffset(1), is_rolling: false, amount_krw: null, estimated_total_krw: null }],
-    ['TEST-UNKNOWN', { title: null, apply_end: kstDateOffset(-1), is_rolling: false, amount_krw: null, estimated_total_krw: null }],
-  ]);
-  const html = renderLiveDashboard({ judgement: view, filter: 'all', catalog, combination: loading, documents: loading, plan: loading });
+  view.results[0].apply_end = kstDateOffset(0);
+  view.results[1].apply_end = kstDateOffset(1); view.results[1].is_rolling = false;
+  view.results[2].apply_end = kstDateOffset(-1);
+  const html = renderLiveDashboard({ judgement: view, filter: 'all', combination: loading, documents: loading, plan: loading });
   assert.match(html, /<div class="deadline">오늘 마감<\/div>/);
   assert.match(html, /<div class="deadline">D-1 · \d{2}\.\d{2} 마감<\/div>/);
   assert.doesNotMatch(html, /D-0/);
   const pastDate = kstDateOffset(-1).replaceAll('-', '.').slice(5);
   assert.match(html, new RegExp(`<div class="deadline">${pastDate} 마감</div>`));
-});
-
-test('no catalog entry at all still renders a normal card -- amount stays "금액 미정" and there is no deadline div', () => {
-  const view = toJudgementView(structuredClone(fixture));
-  const html = renderLiveDashboard({ judgement: view, filter: 'all', combination: loading, documents: loading, plan: loading });
-  assert.equal((html.match(/<div class="amount">금액 미정<\/div>/g) ?? []).length, 3);
-  assert.doesNotMatch(html, /class="deadline"/);
 });
 
 test('hostile explanation and policy id text is escaped, not injected', () => {
@@ -169,13 +156,17 @@ test('document and schedule panels reflect real BE fields and never claim a chec
   ] };
   const plan = { state: 'ready', items: [{ date: '09.16', title: '면접수당 신청', note: '09.16 마감 · 이때까지 준비 시작' }] };
   const html = renderLiveDashboard({ judgement: view, combination: loading, documents, plan });
-  assert.match(html, /check-row checked/);
-  assert.match(html, /주민등록등본/);
-  assert.match(html, /발급처 확인 필요/);
-  assert.match(html, /방문 필요/);
-  assert.match(html, /확인 필요/);
-  assert.match(html, /2개 중 1개 준비/);
-  assert.match(html, /50%/);
-  assert.match(html, /면접수당 신청/);
-  assert.doesNotMatch(html, /최대\s*\d+만원|D-\d+/);
+  // Scoped to the side panel: policy cards legitimately show real D-day/amounts
+  // now (BE issue #8), so asserting "never invents figures" against the whole
+  // page would false-positive on that unrelated, real data.
+  const side = html.slice(html.indexOf('<aside class="side">'));
+  assert.match(side, /check-row checked/);
+  assert.match(side, /주민등록등본/);
+  assert.match(side, /발급처 확인 필요/);
+  assert.match(side, /방문 필요/);
+  assert.match(side, /확인 필요/);
+  assert.match(side, /2개 중 1개 준비/);
+  assert.match(side, /50%/);
+  assert.match(side, /면접수당 신청/);
+  assert.doesNotMatch(side, /최대\s*\d+만원|D-\d+/);
 });

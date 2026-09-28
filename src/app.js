@@ -13,7 +13,6 @@ import { createCombinationApi } from './combination-api.js';
 import { mountCombinations } from './combination-page.js';
 import { createPlanApi } from './plan-api.js';
 import { mountPlan } from './plan-page.js';
-import { createPoliciesApi } from './policies-api.js';
 import { renderReferenceDashboard, mountReferenceDashboard, mountLiveDashboard } from './dashboard.js';
 import { mountAuthModals } from './auth-modal.js';
 const legacyRoutes = { '#dashboard': '#/results', '#combination': '#/combinations', '#schedule': '#/schedule', '#profile': '#/profile' };
@@ -98,7 +97,6 @@ function renderPage(loadedData) {
       profileApi: createProfileApi({ baseUrl: apiBase }),
       combinationApi: createCombinationApi({ baseUrl: apiBase }),
       planApi: createPlanApi({ baseUrl: apiBase }),
-      policiesApi: createPoliciesApi({ baseUrl: apiBase }),
       onReanalyze: () => { location.hash = '#/analysis'; startJudgement(); },
     });
     updatePageMeta();
