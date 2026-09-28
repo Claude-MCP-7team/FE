@@ -86,6 +86,16 @@ test('rejects missing evidence, duplicate identities, invalid types, dates, coun
     d => { d.results[2].origin_url = null; },
     d => { d.results[0].origin_url = 'javascript:alert(1)'; },
     d => { d.results[1].unmatched[0].source_url = 'data:text/html,x'; },
+    d => { d.results[0].title = null; },
+    d => { d.results[0].title = ''; },
+    d => { d.results[0].title = '   '; },
+    d => { d.results[0].apply_end = '2026-13-01'; },
+    d => { d.results[0].apply_start = 'not-a-date'; },
+    d => { d.results[0].is_rolling = 'true'; },
+    d => { d.results[0].amount_krw = -1; },
+    d => { d.results[0].estimated_total_krw = 1.5; },
+    d => { d.results[0].duration_months = '3'; },
+    d => { d.results[0].amount_confidence = 'NEEDS_REVIEW'; },
     d => { d.summary.eligible = 2; },
     d => { d.summary.ineligible = -1; },
     d => { d.disclaimer = ''; },
@@ -124,4 +134,17 @@ test('accepts empty results, null source links, zero, false, and valid leap days
   assert.equal(view.results[1].conditions[0].required, null);
   data.results = []; data.summary = { eligible: 0, ineligible: 0, needs_info: 0 };
   assert.deepEqual(validateJudgementResponse(data), data);
+});
+
+test('policy metadata (title, dates, amount) passes through toJudgementView untouched, and nulls stay null', () => {
+  const data = structuredClone(fixture);
+  data.results[2].apply_start = null; data.results[2].apply_end = null; data.results[2].is_rolling = false;
+  data.results[2].amount_krw = null; data.results[2].estimated_total_krw = null; data.results[2].amount_confidence = null;
+  const view = toJudgementView(data);
+  assert.equal(view.results[0].title, '테스트 정책 일');
+  assert.equal(view.results[0].amount_krw, 500000);
+  assert.equal(view.results[0].apply_end, '2099-01-01');
+  assert.equal(view.results[1].is_rolling, true);
+  assert.equal(view.results[2].apply_end, null);
+  assert.equal(view.results[2].estimated_total_krw, null);
 });

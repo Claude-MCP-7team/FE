@@ -65,48 +65,6 @@ test('combination and plan load independently and the panels reflect what each A
   assert.equal(planSignal.aborted, false);
 }));
 
-test('the policy catalog enriches cards with title/amount/deadline once it loads, without blocking the judgement render', () => withFakeDocument(async () => {
-  const root = new FakeRoot();
-  const judgement = toJudgementView(structuredClone(fixture));
-  const profileApi = { sessionId: 's-1', get: async () => ({ core: {} }) };
-  const combinationApi = { list: async () => new Promise(() => {}) };
-  const planApi = { list: async () => new Promise(() => {}) };
-  const catalogItems = deferred();
-  const policiesApi = { list: async () => catalogItems.promise };
-  mountLiveDashboard(root, { judgement, profileApi, combinationApi, planApi, policiesApi });
-  assert.match(root.html, /금액 미정/, 'renders immediately with placeholders, not blocked on the catalog fetch');
-  catalogItems.resolve([{ policy_id: 'TEST-ELIGIBLE', title: '경기 청년 면접수당', amount_krw: 500000, estimated_total_krw: null, amount_confidence: 'CONFIRMED', apply_end: null, is_rolling: true }]);
-  await new Promise(resolve => setImmediate(resolve));
-  assert.match(root.html, /<h3>경기 청년 면접수당<\/h3>/);
-  assert.match(root.html, /<div class="amount">최대 500,000원<\/div>/);
-  assert.match(root.html, /<div class="deadline">상시 신청<\/div>/);
-}));
-
-test('a failed catalog fetch degrades quietly -- cards still show, just without the extra metadata', () => withFakeDocument(async () => {
-  const root = new FakeRoot();
-  const judgement = toJudgementView(structuredClone(fixture));
-  const profileApi = { sessionId: 's-1', get: async () => ({ core: {} }) };
-  const combinationApi = { list: async () => new Promise(() => {}) };
-  const planApi = { list: async () => new Promise(() => {}) };
-  const policiesApi = { list: async () => { throw new Error('offline'); } };
-  mountLiveDashboard(root, { judgement, profileApi, combinationApi, planApi, policiesApi });
-  await new Promise(resolve => setImmediate(resolve));
-  assert.match(root.html, /policy-ref/);
-  assert.match(root.html, /금액 미정/);
-  assert.doesNotMatch(root.html, /offline/);
-}));
-
-test('mountLiveDashboard works without a policiesApi at all -- it is optional enrichment, not a required dependency', () => withFakeDocument(async () => {
-  const root = new FakeRoot();
-  const judgement = toJudgementView(structuredClone(fixture));
-  const profileApi = { sessionId: 's-1', get: async () => ({ core: {} }) };
-  const combinationApi = { list: async () => new Promise(() => {}) };
-  const planApi = { list: async () => new Promise(() => {}) };
-  mountLiveDashboard(root, { judgement, profileApi, combinationApi, planApi });
-  await new Promise(resolve => setImmediate(resolve));
-  assert.match(root.html, /금액 미정/);
-}));
-
 test('the combo panel picks the highest total across scenarios, not whichever scenario BE lists first', () => withFakeDocument(async () => {
   const root = new FakeRoot();
   const judgement = toJudgementView(structuredClone(fixture));
@@ -121,9 +79,12 @@ test('the combo panel picks the highest total across scenarios, not whichever sc
   const planApi = { list: async () => new Promise(() => {}) };
   mountLiveDashboard(root, { judgement, profileApi, combinationApi, planApi });
   await new Promise(resolve => setImmediate(resolve));
-  assert.match(root.html, /1,000,000원/);
-  assert.match(root.html, /구직촉진수당/);
-  assert.doesNotMatch(root.html, /500,000원/);
+  // Scoped to the combo panel: policy cards can legitimately show their own
+  // amounts now (BE issue #8), so this must not false-positive against those.
+  const combo = root.html.slice(root.html.indexOf('id="combination"'));
+  assert.match(combo, /1,000,000원/);
+  assert.match(combo, /구직촉진수당/);
+  assert.doesNotMatch(combo, /500,000원/);
 }));
 
 test('a missing profile surfaces as a normal error panel per side, not a thrown exception', () => withFakeDocument(async () => {

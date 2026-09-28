@@ -47,8 +47,18 @@ export function validateJudgementResponse(data) {
     requireValue(typeof result.verdict === 'string' && Object.hasOwn(verdictKeys, result.verdict), `${path}.verdict`);
     totals[verdictKeys[result.verdict]]++;
     requireValue(confidences.includes(result.confidence), `${path}.confidence`);
-    for (const key of ['title', 'explanation', 'dept_name', 'dept_tel']) nullableText(result[key], `${path}.${key}`);
+    // title became required once BE added policy metadata directly to /v1/judge
+    // (FE issue #29 / BE issue #8) -- the earlier fallback to policy_id in the UI
+    // stays as defensive display code, but the contract itself now demands it.
+    requireValue(text(result.title), `${path}.title`);
+    for (const key of ['explanation', 'dept_name', 'dept_tel', 'benefit_type']) nullableText(result[key], `${path}.${key}`);
     sourceUrl(result.origin_url, `${path}.origin_url`);
+    for (const key of ['apply_start', 'apply_end']) requireValue(result[key] === undefined || result[key] === null || calendarDate(result[key]), `${path}.${key}`);
+    requireValue(result.is_rolling === undefined || typeof result.is_rolling === 'boolean', `${path}.is_rolling`);
+    // amount_krw is per-payment, estimated_total_krw is BE's own total (amount x
+    // duration where known) -- FE displays the total and never derives one itself.
+    for (const key of ['amount_krw', 'duration_months', 'estimated_total_krw']) requireValue(result[key] === undefined || result[key] === null || count(result[key]), `${path}.${key}`);
+    requireValue(result.amount_confidence === undefined || result.amount_confidence === null || ['CONFIRMED', 'ESTIMATED'].includes(result.amount_confidence), `${path}.amount_confidence`);
     requireValue(result.disclaimer_required === undefined || typeof result.disclaimer_required === 'boolean', `${path}.disclaimer_required`);
     const futureFrom = result.future_eligible_from;
     requireValue(futureFrom === undefined || futureFrom === null || calendarDate(futureFrom), `${path}.future_eligible_from`);
